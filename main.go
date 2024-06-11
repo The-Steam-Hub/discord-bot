@@ -7,8 +7,8 @@ import (
 )
 
 func main() {
-	steam := steam.Steam{Key: "24CC43B3FDACCE9EE85C3BD16660D255"}
-	id := "76561198101884982"
+	steam := steam.Steam{Key: ""}
+	id := ""
 
 	profile, err := steam.Player(id)
 	if err != nil {
