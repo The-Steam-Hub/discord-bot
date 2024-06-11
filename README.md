@@ -1,6 +1,6 @@
 
 
-<div style="height:200px; width:200px" align="center">
+<div style="height:100px; width:100px" align="center">
   <img src="./images/steam-icon.png" />
 </div>
 
