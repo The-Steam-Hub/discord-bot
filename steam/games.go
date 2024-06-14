@@ -25,25 +25,25 @@ type GameStats struct {
 	PlayTimeDeckForever    int    `json:"playtime_deck_forever"`
 }
 
-func (s *Steam) Games(ID string) (GamesResponse, error) {
+func (s *Steam) Games(ID string) (GamesList, error) {
 	url := fmt.Sprintf("http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=%s&steamid=%s&format=json&include_appinfo=true", s.Key, ID)
 	resp, err := http.Get(url)
 	if err != nil {
-		return GamesResponse{}, err
+		return GamesList{}, err
 	}
 
 	if resp.StatusCode != 200 {
-		return GamesResponse{}, fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
+		return GamesList{}, fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
 	}
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return GamesResponse{}, err
+		return GamesList{}, err
 	}
 
-	list := GamesResponse{}
-	json.Unmarshal(b, &list)
-	return list, nil
+	gamesResponse := GamesResponse{}
+	json.Unmarshal(b, &gamesResponse)
+	return gamesResponse.GamesList, nil
 }
 
 func (g *GamesResponse) Count() int {

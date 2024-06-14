@@ -21,25 +21,25 @@ type Friend struct {
 	FriendsSince int64  `json:"friend_since"`
 }
 
-func (s *Steam) Friends(ID string) (FriendsResponse, error) {
+func (s *Steam) Friends(ID string) (FriendsList, error) {
 	url := fmt.Sprintf("http://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key=%s&steamid=%s&relationship=friend", s.Key, ID)
 	resp, err := http.Get(url)
 	if err != nil {
-		return FriendsResponse{}, err
+		return FriendsList{}, err
 	}
 
 	if resp.StatusCode != 200 {
-		return FriendsResponse{}, fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
+		return FriendsList{}, fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
 	}
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return FriendsResponse{}, err
+		return FriendsList{}, err
 	}
 
-	list := FriendsResponse{}
-	json.Unmarshal(b, &list)
-	return list, nil
+	freindsList := FriendsResponse{}
+	json.Unmarshal(b, &freindsList)
+	return freindsList.FriendsList, nil
 }
 
 func (f FriendsResponse) Oldest() Friend {

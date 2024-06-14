@@ -2,72 +2,87 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"regexp"
+	"strings"
+	"syscall"
 
 	"github.com/KevinFagan/steam-stats/steam"
+	"github.com/bwmarrin/discordgo"
+)
+
+var (
+	discordToken = os.Getenv("DISCORD_BOT_TOKEN")
+	steamKey     = os.Getenv("STEAM_API_KEY")
 )
 
 func main() {
-	steam := steam.Steam{Key: ""}
-	id := ""
-
-	profile, err := steam.Player(id)
+	// Create a new Discord session using the provided bot token.
+	dg, err := discordgo.New("Bot " + discordToken)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("error creating Discord session,", err)
+		return
 	}
 
-	fmt.Println("Player Info:")
-	fmt.Printf("Name: %s\n", profile.Name)
-	fmt.Printf("Account Age: %s\n", profile.ProfileAge())
-	fmt.Printf("Country: %s\n", profile.CountryCode)
-	fmt.Printf("State: %s\n", profile.StateCode)
-	fmt.Printf("Real Name: %s\n", profile.RealName)
-	fmt.Printf("Badge Count: %d\n", len(profile.Badges))
-	fmt.Printf("Player Level: %d\n", profile.PlayerLevel)
-	fmt.Printf("Player Level Percentile: %.2f\n", profile.PlayerLevelPercentile)
+	// Register the messageCreate func as a callback for MessageCreate events.
+	dg.AddHandler(messageCreate)
+	dg.Identify.Intents = discordgo.IntentsGuildMessages
 
-	fmt.Println("\nBan Info:")
-	fmt.Printf("Community Banned: %t\n", profile.CommunityBanned)
-	fmt.Printf("VAC Banned: %t\n", profile.VACBanned)
-	fmt.Printf("Number of VAC Bans: %d\n", profile.NumOfVacBans)
-	fmt.Printf("Days Since Last Ban: %d\n", profile.DaysSinceLast)
-	fmt.Printf("Number of Game Bans: %d\n", profile.NumOfGameBans)
-	fmt.Printf("Economy Ban: %s\n", profile.EconomyBan)
-
-	friends, err := steam.Friends(id)
+	// Open a websocket connection to Discord and begin listening.
+	err = dg.Open()
 	if err != nil {
-		fmt.Println(err)
-	}
-	oldestFriend, err := steam.Player(friends.Oldest().ID)
-	if err != nil {
-		fmt.Println(err)
-	}
-	newestFriend, err := steam.Player(friends.Newest().ID)
-	if err != nil {
-		fmt.Println(err)
+		fmt.Println("error opening connection,", err)
+		return
 	}
 
-	fmt.Println("\nFriend Info:")
-	fmt.Printf("Friend Count: %d\n", friends.Count())
-	fmt.Printf("Oldest Friend: %s\n", oldestFriend.Name)
-	fmt.Printf("Newest Friend: %s\n", newestFriend.Name)
+	// Wait here until CTRL-C or other term signal is received.
+	fmt.Println("Bot is now running.  Press CTRL-C to exit.")
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+	<-sc
 
-	games, err := steam.Games(id)
-	if err != nil {
-		fmt.Println(err)
+	dg.Close()
+}
+
+// This function will be called (due to AddHandler above) every time a new
+// message is created on any channel that the authenticated bot has access to.
+func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	// Ignore all messages created by the bot itself
+	if m.Author.ID == s.State.User.ID {
+		return
 	}
 
-	fmt.Println("\nGame Info:")
-	fmt.Printf("Total Games: %d\n", games.Count())
-	fmt.Printf("Games Played: %d\n", games.GamesPlayed())
-	fmt.Printf("Games Not Played: %d\n", games.GamesNotPlayed())
-	fmt.Printf("Total Hours Played: %dh\n", games.TotalHoursPlayed())
-	fmt.Printf("Most Played Game: \"%s\"\n", games.MostPlayed().Name)
+	args := strings.Split(m.Content, " ")
+	if len(args) != 2 {
+		return // invalid command
+	}
 
-	fmt.Println("\nOS Info:")
-	fmt.Printf("Most Used OS: %s\n", games.MostUsedOS())
-	fmt.Printf("Windows Playtime: %dh\n", games.WindowsPlaytime())
-	fmt.Printf("Mac Playtime: %dh\n", games.MacPlaytime())
-	fmt.Printf("Linux Playtime: %dh\n", games.LinuxPlaytime())
-	fmt.Printf("Deck Playtime: %dh\n", games.DeckPlaytime())
+	if args[0] == "!stats" {
+		steam := steam.Steam{Key: steamKey}
 
+		vanityRegex := regexp.MustCompile(`https:\/\/steamcommunity\.com\/id\/([^\/]+)`)
+		vanityMatch := vanityRegex.FindStringSubmatch(args[1])
+		IDRegex := regexp.MustCompile(`https:\/\/steamcommunity\.com\/profiles\/(\d+)`)
+		IDMatch := IDRegex.FindStringSubmatch(args[1])
+		finalID := ""
+
+		if len(vanityMatch) > 1 {
+			vanity, err := steam.ResolveVanityURL(vanityMatch[1])
+			if err != nil {
+				return // Unable to resolve vanity URL
+			}
+			finalID = vanity.SteamID
+		}
+
+		if len(IDMatch) > 1 {
+			finalID = IDMatch[1]
+		}
+
+		if finalID == "" {
+			return // Invalid Steam URL
+		}
+
+		s.ChannelMessageSend(m.ChannelID, finalID)
+	}
 }
