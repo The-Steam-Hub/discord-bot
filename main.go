@@ -161,7 +161,7 @@ func messageFriends(m *discordgo.MessageCreate, steam steam.Steam, player steam.
 				Inline: true,
 			},
 			{
-				Name:   "Newest Friend",
+				Name:   "Newes Friend",
 				Value:  newestFriend,
 				Inline: true,
 			},
