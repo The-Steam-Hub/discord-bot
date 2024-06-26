@@ -10,6 +10,7 @@ import (
 
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -21,7 +22,9 @@ var (
 func main() {
 	dg, err := discordgo.New("Bot " + discordToken)
 	if err != nil {
-		fmt.Println("error creating Discord session,", err)
+		logrus.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("error creating Discord session")
 		return
 	}
 
@@ -30,11 +33,13 @@ func main() {
 
 	err = dg.Open()
 	if err != nil {
-		fmt.Println("error opening connection,", err)
+		logrus.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("error opening connection")
 		return
 	}
 
-	fmt.Println("Bot is now running.  Press CTRL-C to exit.")
+	logrus.Info("Bot is now running.  Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
@@ -42,49 +47,54 @@ func main() {
 	dg.Close()
 }
 
-// This function will be called every time a new message is created on
-// any channel that the authenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
 
-	args := strings.Split(m.Content, " ")
-	if len(args) < 2 || len(args) > 3 {
-		return // invalid command
-	}
+	if strings.HasPrefix(m.Content, "!stats") {
+		logrus.WithFields(logrus.Fields{
+			"author":  m.Message.Author.Username,
+			"channel": m.ChannelID,
+			"command": m.Content,
+		}).Info("Received command")
 
-	if args[0] == "!stats" {
-		fmt.Printf("Received command: %s\n", strings.Join(args, " "))
+		args := strings.Split(m.Content, " ")
 
-		if args[1] == "help" {
+		// If the message does not have 3 arguments, send a usage message
+		// as it is assumed the user did not provide the correct arguments
+		if len(args) != 3 {
 			s.ChannelMessageSend(m.ChannelID, "Usage: `!stats <profile|friends|games|bans> <steam-profile-url>`")
 			return
 		}
 
-		// Getting player information
-		steamID := steamClient.ResolveID(args[2])
-		player, err := steamClient.PlayerWithDetails(steamID)
+		// Retriving detailed information about the player
+		player, err := steamClient.PlayerWithDetails(steamClient.ResolveID(args[2]))
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "Unable to retrieve user information")
-			fmt.Println(err)
+			s.ChannelMessageSend(m.ChannelID, "unable to retrieve user information")
+			logrus.WithFields(logrus.Fields{
+				"author":  m.Message.Author.Username,
+				"channel": m.ChannelID,
+				"command": m.Content,
+				"error":   err,
+			}).Error("unable to retrieve user information")
 			return
 		}
 
-		// Sending message depending on the command
+		// Available commands to retrieve information about the player
 		if args[1] == "profile" {
 			message := messageProfile(player)
 			s.ChannelMessageSendEmbed(m.ChannelID, &message)
 			return
 		}
 		if args[1] == "friends" {
-			message := messageFriends(steamClient, player)
+			message := messageFriends(m, steamClient, player)
 			s.ChannelMessageSendEmbed(m.ChannelID, &message)
 			return
 		}
 		if args[1] == "games" {
-			message := messageGames(steamClient, player)
+			message := messageGames(m, steamClient, player)
 			s.ChannelMessageSendEmbed(m.ChannelID, &message)
 			return
 		}
@@ -96,22 +106,38 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
-func messageFriends(steam steam.Steam, player steam.Player) discordgo.MessageEmbed {
+func messageFriends(m *discordgo.MessageCreate, steam steam.Steam, player steam.Player) discordgo.MessageEmbed {
 	newestFriend := "-"
 	oldestFriend := "-"
 
 	friends, err := steam.Friends(player.SteamID)
 	if err != nil {
-		fmt.Println(err)
+		logrus.WithFields(logrus.Fields{
+			"author":  m.Message.Author.Username,
+			"channel": m.ChannelID,
+			"command": m.Content,
+			"error":   err,
+		}).Error("unable to retrieve friend information")
 	} else {
 		newest, err := steam.Player(friends.Newest().ID)
 		if err != nil {
-			fmt.Println(err)
+			logrus.WithFields(logrus.Fields{
+				"author":  m.Message.Author.Username,
+				"channel": m.ChannelID,
+				"command": m.Content,
+				"error":   err,
+			}).Error("unable to retrieve friend information")
 		}
+
 		newestFriend = newest.Name
 		oldest, err := steam.Player(friends.Oldest().ID)
 		if err != nil {
-			fmt.Println(err)
+			logrus.WithFields(logrus.Fields{
+				"author":  m.Message.Author.Username,
+				"channel": m.ChannelID,
+				"command": m.Content,
+				"error":   err,
+			}).Error("unable to retrieve friend information")
 		}
 		oldestFriend = oldest.Name
 	}
@@ -149,15 +175,27 @@ func messageFriends(steam steam.Steam, player steam.Player) discordgo.MessageEmb
 	return *embed
 }
 
-func messageGames(steam steam.Steam, player steam.Player) discordgo.MessageEmbed {
+func messageGames(m *discordgo.MessageCreate, steam steam.Steam, player steam.Player) discordgo.MessageEmbed {
 	allGames, err := steam.Games(player.SteamID)
 	if err != nil {
-		fmt.Println(err)
+		logrus.WithFields(logrus.Fields{
+			"author":  m.Message.Author.Username,
+			"channel": m.ChannelID,
+			"command": m.Content,
+			"error":   err,
+		}).Error("unable to retrieve game information")
 	}
+
 	recentGames, err := steam.RecentGames(player.SteamID)
 	if err != nil {
-		fmt.Println(err)
+		logrus.WithFields(logrus.Fields{
+			"author":  m.Message.Author.Username,
+			"channel": m.ChannelID,
+			"command": m.Content,
+			"error":   err,
+		}).Error("unable to retrieve game information")
 	}
+
 	mostPlayed := allGames.MostPlayed().Name
 	if mostPlayed == "" {
 		mostPlayed = "-"
@@ -186,7 +224,6 @@ func messageGames(steam steam.Steam, player steam.Player) discordgo.MessageEmbed
 				Value:  fmt.Sprintf("%dh", allGames.TotalHoursPlayed()),
 				Inline: true,
 			},
-			// Empty field to make the embed look better
 			{
 				Name:   "",
 				Value:  "",
@@ -217,7 +254,6 @@ func messageGames(steam steam.Steam, player steam.Player) discordgo.MessageEmbed
 				Value:  strconv.Itoa(len(recentGames.Games)),
 				Inline: true,
 			},
-			// Empty field to make the embed look better
 			{
 				Name:   "",
 				Value:  "",
@@ -329,7 +365,6 @@ func messageProfile(player steam.Player) discordgo.MessageEmbed {
 				Value:  player.LastSeen(),
 				Inline: true,
 			},
-			// Empty field to make the embed look better
 			{
 				Name:   "",
 				Value:  "",

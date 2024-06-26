@@ -49,6 +49,7 @@ type Badge struct {
 	Scarcity       int `json:"scarcity"`
 }
 
+// Player returns basic information about a player
 func (s Steam) Player(ID string) (Player, error) {
 	url := fmt.Sprintf("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=%s&steamids=%s", s.Key, ID)
 	resp, err := http.Get(url)
@@ -75,9 +76,9 @@ func (s Steam) Player(ID string) (Player, error) {
 	}
 
 	return list.Response.Profiles[0], nil
-
 }
 
+// PlayerWithDetails returns a player with additional details such as bans, badges, and level
 func (s Steam) PlayerWithDetails(ID string) (Player, error) {
 	player, err := s.Player(ID)
 	if err != nil {
@@ -102,6 +103,7 @@ func (s Steam) PlayerWithDetails(ID string) (Player, error) {
 	return player, nil
 }
 
+// Status returns the player's status as an emoji
 func (p Player) Status() string {
 	var statusEmoji string
 	switch p.PersonaState {
@@ -123,14 +125,21 @@ func (p Player) Status() string {
 	return statusEmoji
 }
 
+// ProfileAge returns the age of the player's profile
+//
+// Format Example: 18y 0d 0h
 func (p Player) ProfileAge() string {
 	return UnixToDate(p.TimeCreated)
 }
 
+// LastSeen returns the last time the player was seen online
+//
+// Format Example: 18y 0d 0h
 func (p Player) LastSeen() string {
 	return UnixToDate(int64(p.LastLogOff))
 }
 
+// bans returns ban information related to a player
 func bans(s Steam, p *Player) error {
 	url := fmt.Sprintf("https://api.steampowered.com/ISteamUser/GetPlayerBans/v1/?key=%s&steamids=%s", s.Key, p.SteamID)
 	resp, err := http.Get(url)
@@ -158,6 +167,7 @@ func bans(s Steam, p *Player) error {
 	return nil
 }
 
+// badges returns the player's badges
 func badges(s Steam, p *Player) error {
 	url := fmt.Sprintf("https://api.steampowered.com/IPlayerService/GetBadges/v1/?key=%s&steamid=%s", s.Key, p.SteamID)
 	resp, err := http.Get(url)
@@ -180,6 +190,7 @@ func badges(s Steam, p *Player) error {
 	return nil
 }
 
+// profileLevel returns the player's level
 func profileLevel(s Steam, p *Player) error {
 	url := fmt.Sprintf("https://api.steampowered.com/IPlayerService/GetSteamLevel/v1/?key=%s&steamid=%s", s.Key, p.SteamID)
 	resp, err := http.Get(url)
@@ -202,6 +213,7 @@ func profileLevel(s Steam, p *Player) error {
 	return nil
 }
 
+// playerLevelPercentile returns the player's level percentile
 func playerLevelPercentile(s Steam, p *Player) error {
 	url := fmt.Sprintf("https://api.steampowered.com/IPlayerService/GetSteamLevelDistribution/v1/?key=%s&player_level=%d", s.Key, p.PlayerLevel)
 	resp, err := http.Get(url)
@@ -224,6 +236,9 @@ func playerLevelPercentile(s Steam, p *Player) error {
 	return nil
 }
 
+// UnixToDate converts a Unix timestamp to a human-readable string.
+//
+// Example: 1610000000 -> 18y 0d 0h
 func UnixToDate(ut int64) string {
 	if ut == 0 {
 		return "0y 0d 0h"
@@ -233,7 +248,8 @@ func UnixToDate(ut int64) string {
 	givenTime := time.Unix(int64(ut), 0)
 	duration := now.Sub(givenTime)
 
-	// Calculate years, days, and hours. This doesn't account for leap years.
+	// Calculate years, days, and hours. This doesn't account for leap years
+	// so it's not 100% accurate but it's good enough for this use case.
 	years := int(duration.Hours() / (24 * 365))
 	days := int(duration.Hours()/24) % 365
 	hours := int(duration.Hours()) % 24
