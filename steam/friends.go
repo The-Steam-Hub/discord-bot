@@ -42,35 +42,40 @@ func (s *Steam) Friends(ID string) (FriendsList, error) {
 	return freindsList.FriendsList, nil
 }
 
-func (f FriendsResponse) Oldest() Friend {
-	oldest := f.FriendsList.Friends[0]
-	for _, current := range f.FriendsList.Friends {
-		if current.Relationship == "friend" {
-			if current.FriendsSince < oldest.FriendsSince {
-				oldest = current
+func (f FriendsList) Oldest() Friend {
+	if len(f.Friends) > 0 {
+		oldest := f.Friends[0]
+		for _, current := range f.Friends {
+			if current.Relationship == "friend" {
+				if current.FriendsSince < oldest.FriendsSince {
+					oldest = current
+				}
 			}
 		}
+		return oldest
 	}
-
-	return oldest
+	return Friend{}
 }
 
-func (f FriendsResponse) Newest() Friend {
-	newest := f.FriendsList.Friends[0]
-	for _, current := range f.FriendsList.Friends {
-		if current.Relationship == "friend" {
-			if current.FriendsSince > newest.FriendsSince {
-				newest = current
+func (f FriendsList) Newest() Friend {
+	if len(f.Friends) > 0 {
+		newest := f.Friends[0]
+		for _, current := range f.Friends {
+			if current.Relationship == "friend" {
+				if current.FriendsSince > newest.FriendsSince {
+					newest = current
+				}
 			}
 		}
-	}
 
-	return newest
+		return newest
+	}
+	return Friend{}
 }
 
-func (f FriendsResponse) Count() int {
+func (f FriendsList) Count() int {
 	var count int
-	for _, friend := range f.FriendsList.Friends {
+	for _, friend := range f.Friends {
 		if friend.Relationship == "friend" {
 			count++
 		}

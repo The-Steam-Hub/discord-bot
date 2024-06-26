@@ -35,6 +35,7 @@ type Player struct {
 	EconomyBan            string `json:"EconomyBan"`
 	PlayerLevel           int
 	PlayerLevelPercentile float64
+	PersonaState          int
 	Badges                []Badge
 }
 
@@ -65,6 +66,12 @@ func (s Steam) Player(ID string) (Player, error) {
 	list := PlayerResponse{}
 	json.Unmarshal(b, &list)
 
+	// Steam will still return a 200 if the user is not found
+	// so we need to check if the response is empty
+	if len(list.Response.Profiles) == 0 {
+		return Player{}, fmt.Errorf("no player found with ID %s", ID)
+	}
+
 	err = bans(s, &list.Response.Profiles[0])
 	if err != nil {
 		return Player{}, err
@@ -85,7 +92,32 @@ func (s Steam) Player(ID string) (Player, error) {
 	return list.Response.Profiles[0], nil
 }
 
+func (p Player) Status() string {
+	var statusEmoji string
+	switch p.PersonaState {
+	case 0:
+		statusEmoji = "⚫️" // Black circle for Offline
+	case 1:
+		statusEmoji = "🟢" // Green circle for Online
+	case 2:
+		statusEmoji = "🔴" // Red circle for Busy
+	case 3:
+		statusEmoji = "🟡" // Yellow circle for Away
+	case 4:
+		statusEmoji = "💤" // Snooze emoji for Snooze
+	case 5:
+		statusEmoji = "🔄" // Arrow circle emoji for Looking to trade
+	case 6:
+		statusEmoji = "🎮" // Video game controller emoji for Looking to play
+	}
+	return statusEmoji
+}
+
 func (p Player) ProfileAge() string {
+	if p.TimeCreated == 0 {
+		return "0y 0d 0h"
+	}
+
 	now := time.Now()
 	givenTime := time.Unix(p.TimeCreated, 0)
 	duration := now.Sub(givenTime)

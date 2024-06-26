@@ -1,6 +1,15 @@
-<p align="center">
-  <img src="./images/steam-icon.png" alt="Steam Icon" width="100" height="100">
-</p>
+[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/oauth2/authorize?client_id=1248020715689476227&permissions=0&integration_type=0&scope=bot)
 
-<h2 align="center">Discord Bot for Steam Profiles</h2>
+## Discord Bot for Steam Profiles
 
+`steam-stats` is a Discord bot designed to enhance your gaming community's experience by providing seamless access to detailed Steam profile statistics. Whether you're a gamer looking to showcase your extensive game library, check the status of your friends list, or simply keep track of your account's bans, Steam Stats Bot delivers comprehensive insights directly within your Discord server.
+
+## Commands
+
+- `!stats games <steam-profile-url>`
+  
+- `!stats friends <steam-profile-url>`
+  
+- `!stats profile <steam-profile-url>`
+  
+- `!stats bans <steam-profile-url>`

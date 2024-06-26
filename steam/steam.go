@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 )
 
 type Steam struct {
@@ -19,7 +20,28 @@ type Vanity struct {
 	SteamID string `json:"steamid"`
 }
 
-func (s *Steam) ResolveVanityURL(vanityURL string) (Vanity, error) {
+func (s *Steam) ResolveID(url string) string {
+	vanityRegex := regexp.MustCompile(`https:\/\/steamcommunity\.com\/id\/([^\/]+)`)
+	vanityMatch := vanityRegex.FindStringSubmatch(url)
+	IDRegex := regexp.MustCompile(`https:\/\/steamcommunity\.com\/profiles\/(\d+)`)
+	IDMatch := IDRegex.FindStringSubmatch(url)
+	steamID := ""
+
+	if len(vanityMatch) > 1 {
+		vanity, err := s.resolveVanityURL(vanityMatch[1])
+		if err != nil {
+			return ""
+		}
+		steamID = vanity.SteamID
+	}
+	if len(IDMatch) > 1 {
+		steamID = IDMatch[1]
+	}
+
+	return steamID
+}
+
+func (s *Steam) resolveVanityURL(vanityURL string) (Vanity, error) {
 	url := fmt.Sprintf("https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key=%s&vanityurl=%s", s.Key, vanityURL)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -34,7 +56,6 @@ func (s *Steam) ResolveVanityURL(vanityURL string) (Vanity, error) {
 	if err != nil {
 		return Vanity{}, err
 	}
-	fmt.Println(string(b))
 
 	VanityResponse := VanityResponse{}
 	json.Unmarshal(b, &VanityResponse)
