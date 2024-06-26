@@ -2,7 +2,7 @@
 
 ## Discord Bot for Steam Profiles
 
-`steam-stats` is a Discord bot designed to enhance your gaming community's experience by providing seamless access to detailed Steam profile statistics. Whether you're a gamer looking to showcase your extensive game library, check the status of your friends list, or simply keep track of your account's bans, Steam Stats Bot delivers comprehensive insights directly within your Discord server.
+`steam-stats`  a Discord bot designed to enhance your gaming community's experience by providing seamless access to detailed Steam profile statistics. Whether you're a gamer looking to showcase your extensive game library, check the status of your friends list, or simply keep track of your account's bans, Steam Stats Bot delivers comprehensive insights directly within your Discord server.
 
 ## Commands
 

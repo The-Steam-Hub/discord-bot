@@ -51,12 +51,17 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	args := strings.Split(m.Content, " ")
-	if len(args) != 3 {
+	if len(args) < 2 || len(args) > 3 {
 		return // invalid command
 	}
 
 	if args[0] == "!stats" {
 		fmt.Printf("Received command: %s\n", strings.Join(args, " "))
+
+		if args[1] == "help" {
+			s.ChannelMessageSend(m.ChannelID, "Usage: `!stats <profile|friends|games|bans> <steam-profile-url>`")
+			return
+		}
 
 		// Getting player information
 		steamID := steamClient.ResolveID(args[2])
