@@ -67,7 +67,6 @@ func (f FriendsList) Newest() Friend {
 				}
 			}
 		}
-
 		return newest
 	}
 	return Friend{}

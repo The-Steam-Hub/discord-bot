@@ -60,13 +60,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		// Getting player information
 		steamID := steamClient.ResolveID(args[2])
-		player, err := steamClient.Player(steamID)
+		player, err := steamClient.PlayerWithDetails(steamID)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, "Unable to retrieve user information")
 			fmt.Println(err)
 			return
 		}
 
+		// Sending message depending on the command
 		if args[1] == "profile" {
 			message := messageProfile(player)
 			s.ChannelMessageSendEmbed(m.ChannelID, &message)
@@ -120,6 +121,7 @@ func messageFriends(steam steam.Steam, player steam.Player) discordgo.MessageEmb
 		},
 		Author: &discordgo.MessageEmbedAuthor{
 			Name: fmt.Sprintf("%s %s", player.Status(), player.Name),
+			URL:  player.ProfileURL,
 		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
@@ -128,7 +130,7 @@ func messageFriends(steam steam.Steam, player steam.Player) discordgo.MessageEmb
 				Inline: true,
 			},
 			{
-				Name:   "Newes Friend",
+				Name:   "Newest Friend",
 				Value:  newestFriend,
 				Inline: true,
 			},
@@ -143,11 +145,15 @@ func messageFriends(steam steam.Steam, player steam.Player) discordgo.MessageEmb
 }
 
 func messageGames(steam steam.Steam, player steam.Player) discordgo.MessageEmbed {
-	games, err := steam.Games(player.SteamID)
+	allGames, err := steam.Games(player.SteamID)
 	if err != nil {
 		fmt.Println(err)
 	}
-	mostPlayed := games.MostPlayed().Name
+	recentGames, err := steam.RecentGames(player.SteamID)
+	if err != nil {
+		fmt.Println(err)
+	}
+	mostPlayed := allGames.MostPlayed().Name
 	if mostPlayed == "" {
 		mostPlayed = "-"
 	}
@@ -162,6 +168,7 @@ func messageGames(steam steam.Steam, player steam.Player) discordgo.MessageEmbed
 		},
 		Author: &discordgo.MessageEmbedAuthor{
 			Name: fmt.Sprintf("%s %s", player.Status(), player.Name),
+			URL:  player.ProfileURL,
 		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
@@ -170,23 +177,45 @@ func messageGames(steam steam.Steam, player steam.Player) discordgo.MessageEmbed
 				Inline: true,
 			},
 			{
+				Name:   "Total Playtime",
+				Value:  fmt.Sprintf("%dh", allGames.TotalHoursPlayed()),
+				Inline: true,
+			},
+			// Empty field to make the embed look better
+			{
+				Name:   "",
+				Value:  "",
+				Inline: true,
+			},
+			{
 				Name:   "Games Owned",
-				Value:  strconv.Itoa(games.Count()),
+				Value:  strconv.Itoa(len(allGames.Games)),
 				Inline: true,
 			},
 			{
 				Name:   "Games Played",
-				Value:  strconv.Itoa(games.GamesPlayed()),
+				Value:  strconv.Itoa(allGames.GamesPlayed()),
 				Inline: true,
 			},
 			{
 				Name:   "Games Not Played",
-				Value:  strconv.Itoa(games.GamesNotPlayed()),
+				Value:  strconv.Itoa(allGames.GamesNotPlayed()),
 				Inline: true,
 			},
 			{
-				Name:   "Total Playtime",
-				Value:  strconv.Itoa(games.TotalHoursPlayed()),
+				Name:   "Last 2 Week Playtime",
+				Value:  fmt.Sprintf("%dh", recentGames.HoursPlayed2Weeks()),
+				Inline: true,
+			},
+			{
+				Name:   "Last 2 Week Games Played",
+				Value:  strconv.Itoa(len(recentGames.Games)),
+				Inline: true,
+			},
+			// Empty field to make the embed look better
+			{
+				Name:   "",
+				Value:  "",
 				Inline: true,
 			},
 		},
@@ -205,6 +234,7 @@ func messageBans(player steam.Player) discordgo.MessageEmbed {
 		},
 		Author: &discordgo.MessageEmbedAuthor{
 			Name: fmt.Sprintf("%s %s", player.Status(), player.Name),
+			URL:  player.ProfileURL,
 		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
@@ -220,6 +250,11 @@ func messageBans(player steam.Player) discordgo.MessageEmbed {
 			{
 				Name:   "# Of Game Bans",
 				Value:  strconv.Itoa(player.NumOfGameBans),
+				Inline: true,
+			},
+			{
+				Name:   "Days Since Last Ban",
+				Value:  fmt.Sprintf("%dd", player.DaysSinceLastBan),
 				Inline: true,
 			},
 			{
@@ -261,6 +296,7 @@ func messageProfile(player steam.Player) discordgo.MessageEmbed {
 		},
 		Author: &discordgo.MessageEmbedAuthor{
 			Name: fmt.Sprintf("%s %s", player.Status(), player.Name),
+			URL:  player.ProfileURL,
 		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
@@ -281,6 +317,17 @@ func messageProfile(player steam.Player) discordgo.MessageEmbed {
 			{
 				Name:   "Profile Age",
 				Value:  player.ProfileAge(),
+				Inline: true,
+			},
+			{
+				Name:   "Last Seen",
+				Value:  player.LastSeen(),
+				Inline: true,
+			},
+			// Empty field to make the embed look better
+			{
+				Name:   "",
+				Value:  "",
 				Inline: true,
 			},
 			{

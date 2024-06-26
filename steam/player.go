@@ -30,9 +30,11 @@ type Player struct {
 	CommunityBanned       bool   `json:"CommunityBanned"`
 	VACBanned             bool   `json:"VACBanned"`
 	NumOfVacBans          int    `json:"NumberOfVACBans"`
-	DaysSinceLast         int    `json:"DaysSinceLastBan"`
+	DaysSinceLastBan      int    `json:"DaysSinceLastBan"`
 	NumOfGameBans         int    `json:"NumberOfGameBans"`
 	EconomyBan            string `json:"EconomyBan"`
+	ProfileURL            string `json:"profileurl"`
+	LastLogOff            int    `json:"lastlogoff"`
 	PlayerLevel           int
 	PlayerLevelPercentile float64
 	PersonaState          int
@@ -72,24 +74,32 @@ func (s Steam) Player(ID string) (Player, error) {
 		return Player{}, fmt.Errorf("no player found with ID %s", ID)
 	}
 
-	err = bans(s, &list.Response.Profiles[0])
-	if err != nil {
-		return Player{}, err
-	}
-	err = badges(s, &list.Response.Profiles[0])
-	if err != nil {
-		return Player{}, err
-	}
-	err = profileLevel(s, &list.Response.Profiles[0])
-	if err != nil {
-		return Player{}, err
-	}
-	err = playerLevelPercentile(s, &list.Response.Profiles[0])
-	if err != nil {
-		return Player{}, err
-	}
-
 	return list.Response.Profiles[0], nil
+
+}
+
+func (s Steam) PlayerWithDetails(ID string) (Player, error) {
+	player, err := s.Player(ID)
+	if err != nil {
+		return Player{}, err
+	}
+	err = bans(s, &player)
+	if err != nil {
+		return Player{}, err
+	}
+	err = badges(s, &player)
+	if err != nil {
+		return Player{}, err
+	}
+	err = profileLevel(s, &player)
+	if err != nil {
+		return Player{}, err
+	}
+	err = playerLevelPercentile(s, &player)
+	if err != nil {
+		return Player{}, err
+	}
+	return player, nil
 }
 
 func (p Player) Status() string {
@@ -114,20 +124,11 @@ func (p Player) Status() string {
 }
 
 func (p Player) ProfileAge() string {
-	if p.TimeCreated == 0 {
-		return "0y 0d 0h"
-	}
+	return UnixToDate(p.TimeCreated)
+}
 
-	now := time.Now()
-	givenTime := time.Unix(p.TimeCreated, 0)
-	duration := now.Sub(givenTime)
-
-	// Calculate years, days, and hours. This doesn't account for leap years.
-	years := int(duration.Hours() / (24 * 365))
-	days := int(duration.Hours()/24) % 365
-	hours := int(duration.Hours()) % 24
-
-	return fmt.Sprintf("%dy %dd %dh", int(years), int(days), int(hours))
+func (p Player) LastSeen() string {
+	return UnixToDate(int64(p.LastLogOff))
 }
 
 func bans(s Steam, p *Player) error {
@@ -151,7 +152,7 @@ func bans(s Steam, p *Player) error {
 	p.CommunityBanned = bans.Profiles[0].CommunityBanned
 	p.VACBanned = bans.Profiles[0].VACBanned
 	p.NumOfVacBans = bans.Profiles[0].NumOfVacBans
-	p.DaysSinceLast = bans.Profiles[0].DaysSinceLast
+	p.DaysSinceLastBan = bans.Profiles[0].DaysSinceLastBan
 	p.NumOfGameBans = bans.Profiles[0].NumOfGameBans
 	p.EconomyBan = bans.Profiles[0].EconomyBan
 	return nil
@@ -221,4 +222,21 @@ func playerLevelPercentile(s Steam, p *Player) error {
 	json.Unmarshal(b, &level)
 	p.PlayerLevelPercentile = level.Response.PlayerLevelPercentile
 	return nil
+}
+
+func UnixToDate(ut int64) string {
+	if ut == 0 {
+		return "0y 0d 0h"
+	}
+
+	now := time.Now()
+	givenTime := time.Unix(int64(ut), 0)
+	duration := now.Sub(givenTime)
+
+	// Calculate years, days, and hours. This doesn't account for leap years.
+	years := int(duration.Hours() / (24 * 365))
+	days := int(duration.Hours()/24) % 365
+	hours := int(duration.Hours()) % 24
+
+	return fmt.Sprintf("%dy %dd %dh", int(years), int(days), int(hours))
 }
