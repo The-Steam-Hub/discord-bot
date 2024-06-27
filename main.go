@@ -65,7 +65,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// If the message does not have 3 arguments, send a usage message
 		// as it is assumed the user did not provide the correct arguments
 		if len(args) != 3 {
-			s.ChannelMessageSend(m.ChannelID, "Usage: `!stats <profile|friends|games|bans> <steam-profile-url>`")
+			s.ChannelMessageSend(m.ChannelID, "Usage: `!stats <profile|friends|games|bans|help> <steam-profile-url>`")
 			return
 		}
 

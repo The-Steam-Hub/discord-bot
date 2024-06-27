@@ -26,6 +26,7 @@ type GameStats struct {
 	PlayTime2Weeks         int    `json:"playtime_2weeks"`
 }
 
+// Games retrives a list of all games owned by the user, incuding free to play games
 func (s *Steam) Games(ID string) (GamesList, error) {
 	url := fmt.Sprintf("http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=%s&steamid=%s&format=json&include_appinfo=true&include_played_free_games=true", s.Key, ID)
 	resp, err := http.Get(url)

@@ -237,6 +237,8 @@ func playerLevelPercentile(s Steam, p *Player) error {
 }
 
 // UnixToDate converts a Unix timestamp to a human-readable string.
+// This doesn't account for leap years so it's not 100% accurate
+// but it's good enough for this use case.
 //
 // Example: 1610000000 -> 18y 0d 0h
 func UnixToDate(ut int64) string {
@@ -248,8 +250,6 @@ func UnixToDate(ut int64) string {
 	givenTime := time.Unix(int64(ut), 0)
 	duration := now.Sub(givenTime)
 
-	// Calculate years, days, and hours. This doesn't account for leap years
-	// so it's not 100% accurate but it's good enough for this use case.
 	years := int(duration.Hours() / (24 * 365))
 	days := int(duration.Hours()/24) % 365
 	hours := int(duration.Hours()) % 24

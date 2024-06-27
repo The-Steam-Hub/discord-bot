@@ -20,6 +20,7 @@ type Vanity struct {
 	SteamID string `json:"steamid"`
 }
 
+// ResolveID takes a steam profile URL and returns the steam ID
 func (s *Steam) ResolveID(url string) string {
 	vanityRegex := regexp.MustCompile(`https:\/\/steamcommunity\.com\/id\/([^\/]+)`)
 	vanityMatch := vanityRegex.FindStringSubmatch(url)
