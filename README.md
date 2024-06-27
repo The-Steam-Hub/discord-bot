@@ -10,4 +10,4 @@
 
 <br>
 
-![example](images/image.png)
+![image](https://github.com/kevin-fagan/steam-stats/assets/19915245/b84cc7f7-c4dd-4fba-afe4-b52b94ab9c4e)
