@@ -136,7 +136,10 @@ func (p Player) ProfileAge() string {
 //
 // Format Example: 18y 0d 0h
 func (p Player) LastSeen() string {
-	return UnixToDate(int64(p.LastLogOff))
+	if p.PersonaState == 0 {
+		return UnixToDate(int64(p.LastLogOff))
+	}
+	return UnixToDate(0)
 }
 
 // bans returns ban information related to a player

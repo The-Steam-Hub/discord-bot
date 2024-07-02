@@ -9,5 +9,3 @@
 </div>
 
 <br>
-
-![example](images/image.png)

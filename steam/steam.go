@@ -20,8 +20,8 @@ type Vanity struct {
 	SteamID string `json:"steamid"`
 }
 
-// ResolveID takes a steam profile URL and returns the steam ID
-func (s *Steam) ResolveID(url string) string {
+// ResolveIDFromURL takes a steam profile URL and returns the steam ID
+func (s *Steam) ResolveIDFromURL(url string) string {
 	vanityRegex := regexp.MustCompile(`https:\/\/steamcommunity\.com\/id\/([^\/]+)`)
 	vanityMatch := vanityRegex.FindStringSubmatch(url)
 	IDRegex := regexp.MustCompile(`https:\/\/steamcommunity\.com\/profiles\/(\d+)`)
@@ -61,4 +61,18 @@ func (s *Steam) resolveVanityURL(vanityURL string) (Vanity, error) {
 	VanityResponse := VanityResponse{}
 	json.Unmarshal(b, &VanityResponse)
 	return VanityResponse.Vanity, nil
+}
+
+func SteamID64ToSteamID(steamID64 uint64) string {
+	universe := (steamID64 >> 56) & 0xFF
+	accountID := steamID64 & 0xFFFFFFFF
+	authServer := accountID % 2
+	accountNumber := (accountID - authServer) / 2
+
+	return fmt.Sprintf("STEAM_%d:%d:%d", universe, authServer, accountNumber)
+}
+
+func SteamID64ToSteamID3(steamID64 uint64) string {
+	accountID := steamID64 & 0xFFFFFFFF
+	return fmt.Sprintf("[U:1:%d]", accountID)
 }

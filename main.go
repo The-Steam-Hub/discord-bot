@@ -65,12 +65,12 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// If the message does not have 3 arguments, send a usage message
 		// as it is assumed the user did not provide the correct arguments
 		if len(args) != 3 {
-			s.ChannelMessageSend(m.ChannelID, "Usage: `!stats <profile|friends|games|bans|help> <steam-profile-url>`")
+			s.ChannelMessageSend(m.ChannelID, "Usage: `!stats <profile|id|friends|games|bans|help> <steam-profile-url>`")
 			return
 		}
 
 		// Retriving detailed information about the player
-		player, err := steamClient.PlayerWithDetails(steamClient.ResolveID(args[2]))
+		player, err := steamClient.PlayerWithDetails(steamClient.ResolveIDFromURL(args[2]))
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, "unable to retrieve user information")
 			logrus.WithFields(logrus.Fields{
@@ -100,6 +100,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		if args[1] == "bans" {
 			message := messageBans(player)
+			s.ChannelMessageSendEmbed(m.ChannelID, &message)
+			return
+		}
+		if args[1] == "id" {
+			message := messageID(player)
 			s.ChannelMessageSendEmbed(m.ChannelID, &message)
 			return
 		}
@@ -383,6 +388,39 @@ func messageProfile(player steam.Player) discordgo.MessageEmbed {
 			{
 				Name:   "Badges",
 				Value:  strconv.Itoa(int(len(player.Badges))),
+				Inline: true,
+			},
+		},
+	}
+	return *embed
+}
+
+func messageID(player steam.Player) discordgo.MessageEmbed {
+	steamID, _ := strconv.ParseUint(player.SteamID, 10, 64)
+
+	embed := &discordgo.MessageEmbed{
+		Color: 0x66c0f4,
+		Thumbnail: &discordgo.MessageEmbedThumbnail{
+			URL: player.AvatarFull,
+		},
+		Author: &discordgo.MessageEmbedAuthor{
+			Name: fmt.Sprintf("%s %s", player.Status(), player.Name),
+			URL:  player.ProfileURL,
+		},
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:   "Steam ID",
+				Value:  steam.SteamID64ToSteamID(steamID),
+				Inline: true,
+			},
+			{
+				Name:   "Steam ID3",
+				Value:  steam.SteamID64ToSteamID3(steamID),
+				Inline: true,
+			},
+			{
+				Name:   "Steam ID64",
+				Value:  player.SteamID,
 				Inline: true,
 			},
 		},
