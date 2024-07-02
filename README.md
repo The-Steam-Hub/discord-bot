@@ -9,3 +9,6 @@
 </div>
 
 <br>
+
+
+![finished](https://github.com/kevin-fagan/steam-stats/assets/19915245/6859c3f1-4b3e-45f5-ab48-60e17f215282)
