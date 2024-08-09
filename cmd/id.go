@@ -24,6 +24,7 @@ func ID(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.Stea
 		logs["error"] = err
 		logrus.WithFields(logs).Error("unable to retrieve player information")
 		s.ChannelMessageSend(m.ChannelID, "unable to retrieve player information")
+		return
 	}
 
 	steamIDInt, _ := strconv.ParseUint(player[0].SteamID, 10, 64)
@@ -38,17 +39,17 @@ func ID(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.Stea
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Steam ID",
-				Value:  DefaultValue(steamID64),
+				Value:  DefaultStringValue(steamID64),
 				Inline: true,
 			},
 			{
 				Name:   "Steam ID3",
-				Value:  DefaultValue(steamID3),
+				Value:  DefaultStringValue(steamID3),
 				Inline: true,
 			},
 			{
 				Name:   "Steam ID64",
-				Value:  DefaultValue(player[0].SteamID),
+				Value:  DefaultStringValue(player[0].SteamID),
 				Inline: true,
 			},
 		},

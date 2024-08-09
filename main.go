@@ -81,17 +81,18 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	if args[command] == "friends" && len(args) == 3 {
 		resolvedID := steamClient.ResolveIDFromURL(args[ID])
-		cmd.Bans(s, m, steamClient, resolvedID)
+		cmd.Friends(s, m, steamClient, resolvedID)
 		return
 	}
 	if args[command] == "games" && len(args) == 3 {
 		resolvedID := steamClient.ResolveIDFromURL(args[ID])
-		cmd.Bans(s, m, steamClient, resolvedID)
+		cmd.Games(s, m, steamClient, resolvedID)
 		return
 	}
 	if args[command] == "bans" && len(args) == 3 {
 		resolvedID := steamClient.ResolveIDFromURL(args[ID])
 		cmd.Bans(s, m, steamClient, resolvedID)
+		return
 	}
 	cmd.Help(s, m)
 }

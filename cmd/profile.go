@@ -25,6 +25,7 @@ func Profile(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 		logs["error"] = err
 		logrus.WithFields(logs).Error("unable to retrieve player information")
 		s.ChannelMessageSend(m.ChannelID, "unable to retrieve player information")
+		return
 	}
 
 	embedInfo := EmbededInfo(player)
@@ -38,27 +39,27 @@ func Profile(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Real Name",
-				Value:  DefaultValue(player.RealName),
+				Value:  DefaultStringValue(player.RealName),
 				Inline: true,
 			},
 			{
 				Name:   "Country Code",
-				Value:  DefaultValue(player.CountryCode),
+				Value:  DefaultStringValue(player.CountryCode),
 				Inline: true,
 			},
 			{
 				Name:   "State Code",
-				Value:  DefaultValue(player.StateCode),
+				Value:  DefaultStringValue(player.StateCode),
 				Inline: true,
 			},
 			{
 				Name:   "Profile Age",
-				Value:  DefaultValue(player.ProfileAge()),
+				Value:  DefaultStringValue(player.ProfileAge()),
 				Inline: true,
 			},
 			{
 				Name:   "Last Seen",
-				Value:  DefaultValue(player.LastSeen()),
+				Value:  DefaultStringValue(player.LastSeen()),
 				Inline: true,
 			},
 			{
@@ -99,7 +100,7 @@ func EmbededInfo(p steam.Player) discordgo.MessageEmbed {
 	}
 }
 
-func DefaultValue(value string) string {
+func DefaultStringValue(value string) string {
 	if value == "" {
 		return "-"
 	}

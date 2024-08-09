@@ -24,6 +24,7 @@ func Bans(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.St
 		logs["error"] = err
 		logrus.WithFields(logs).Error("unable to retrieve player information")
 		s.ChannelMessageSend(m.ChannelID, "unable to retrieve player information")
+		return
 	}
 
 	embedInfo := EmbededInfo(player)
