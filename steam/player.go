@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -13,32 +14,38 @@ type PlayerResponse struct {
 }
 
 type Response struct {
-	Profiles              []Player `json:"players"`
-	Badges                []Badge  `json:"badges"`
-	PlayerLevel           int      `json:"player_level"`
-	PlayerLevelPercentile float64  `json:"player_level_percentile"`
+	Profiles                   []Player `json:"players"`
+	Badges                     []Badge  `json:"badges"`
+	PlayerXP                   int      `json:"player_xp"`
+	PlayerLevel                int      `json:"player_level"`
+	PlayerLevelPercentile      float64  `json:"player_level_percentile"`
+	PlayerXPNeededToLevelUp    int      `json:"player_xp_needed_to_level_up"`
+	PlayerXPNeededCurrentLevel int      `json:"player_xp_needed_current_level"`
 }
 
 type Player struct {
-	SteamID               string `json:"steamid"`
-	Name                  string `json:"personaname"`
-	TimeCreated           int64  `json:"timecreated"`
-	CountryCode           string `json:"loccountrycode"`
-	StateCode             string `json:"locstatecode"`
-	AvatarFull            string `json:"avatarfull"`
-	RealName              string `json:"realname"`
-	CommunityBanned       bool   `json:"CommunityBanned"`
-	VACBanned             bool   `json:"VACBanned"`
-	NumOfVacBans          int    `json:"NumberOfVACBans"`
-	DaysSinceLastBan      int    `json:"DaysSinceLastBan"`
-	NumOfGameBans         int    `json:"NumberOfGameBans"`
-	EconomyBan            string `json:"EconomyBan"`
-	ProfileURL            string `json:"profileurl"`
-	LastLogOff            int    `json:"lastlogoff"`
-	PlayerLevel           int
-	PlayerLevelPercentile float64
-	PersonaState          int
-	Badges                []Badge
+	SteamID                    string `json:"steamid"`
+	Name                       string `json:"personaname"`
+	TimeCreated                int64  `json:"timecreated"`
+	CountryCode                string `json:"loccountrycode"`
+	StateCode                  string `json:"locstatecode"`
+	AvatarFull                 string `json:"avatarfull"`
+	RealName                   string `json:"realname"`
+	CommunityBanned            bool   `json:"CommunityBanned"`
+	VACBanned                  bool   `json:"VACBanned"`
+	NumOfVacBans               int    `json:"NumberOfVACBans"`
+	DaysSinceLastBan           int    `json:"DaysSinceLastBan"`
+	NumOfGameBans              int    `json:"NumberOfGameBans"`
+	EconomyBan                 string `json:"EconomyBan"`
+	ProfileURL                 string `json:"profileurl"`
+	LastLogOff                 int    `json:"lastlogoff"`
+	PlayerXP                   int
+	PlayerLevel                int
+	PlayerLevelPercentile      float64
+	PlayerXPNeededToLevelUp    int
+	PlayerXPNeededCurrentLevel int
+	PersonaState               int
+	Badges                     []Badge
 }
 
 type Badge struct {
@@ -49,21 +56,21 @@ type Badge struct {
 	Scarcity       int `json:"scarcity"`
 }
 
-// Player returns basic information about a player
-func (s Steam) Player(ID string) (Player, error) {
-	url := fmt.Sprintf("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=%s&steamids=%s", s.Key, ID)
+func (s Steam) GetPlayerSummaries(ID ...string) ([]Player, error) {
+	cappedID := ID[:min(len(ID), 100)]
+	url := fmt.Sprintf("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=%s&steamids=%s", s.Key, strings.Join(cappedID, ","))
 	resp, err := http.Get(url)
 	if err != nil {
-		return Player{}, err
+		return []Player{}, err
 	}
 
 	if resp.StatusCode != 200 {
-		return Player{}, fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
+		return []Player{}, fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
 	}
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return Player{}, err
+		return []Player{}, err
 	}
 
 	list := PlayerResponse{}
@@ -72,35 +79,105 @@ func (s Steam) Player(ID string) (Player, error) {
 	// Steam will still return a 200 if the user is not found
 	// so we need to check if the response is empty
 	if len(list.Response.Profiles) == 0 {
-		return Player{}, fmt.Errorf("no player found with ID %s", ID)
+		return []Player{}, fmt.Errorf("user not found")
 	}
 
-	return list.Response.Profiles[0], nil
+	return list.Response.Profiles, nil
 }
 
-// PlayerWithDetails returns a player with additional details such as bans, badges, and level
-func (s Steam) PlayerWithDetails(ID string) (Player, error) {
-	player, err := s.Player(ID)
+func (s Steam) GetPlayerSummariesWithExtra(ID string) (Player, error) {
+	player, err := s.GetPlayerSummaries(ID)
 	if err != nil {
 		return Player{}, err
 	}
-	err = bans(s, &player)
+	err = GetPlayerBans(s, &player[0])
 	if err != nil {
 		return Player{}, err
 	}
-	err = badges(s, &player)
+	err = GetBadges(s, &player[0])
 	if err != nil {
 		return Player{}, err
 	}
-	err = profileLevel(s, &player)
+	err = GetSteamLevelDistribution(s, &player[0])
 	if err != nil {
 		return Player{}, err
 	}
-	err = playerLevelPercentile(s, &player)
+	return player[0], nil
+}
+
+func GetPlayerBans(s Steam, p *Player) error {
+	url := fmt.Sprintf("https://api.steampowered.com/ISteamUser/GetPlayerBans/v1/?key=%s&steamids=%s", s.Key, p.SteamID)
+	resp, err := http.Get(url)
 	if err != nil {
-		return Player{}, err
+		return err
 	}
-	return player, nil
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	bans := Response{}
+	json.Unmarshal(b, &bans)
+	p.CommunityBanned = bans.Profiles[0].CommunityBanned
+	p.VACBanned = bans.Profiles[0].VACBanned
+	p.NumOfVacBans = bans.Profiles[0].NumOfVacBans
+	p.DaysSinceLastBan = bans.Profiles[0].DaysSinceLastBan
+	p.NumOfGameBans = bans.Profiles[0].NumOfGameBans
+	p.EconomyBan = bans.Profiles[0].EconomyBan
+	return nil
+}
+
+func GetBadges(s Steam, p *Player) error {
+	url := fmt.Sprintf("https://api.steampowered.com/IPlayerService/GetBadges/v1/?key=%s&steamid=%s", s.Key, p.SteamID)
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	badges := PlayerResponse{}
+	json.Unmarshal(b, &badges)
+	p.Badges = badges.Response.Badges
+	p.PlayerXP = badges.Response.PlayerXP
+	p.PlayerLevel = badges.Response.PlayerLevel
+	p.PlayerXPNeededToLevelUp = badges.Response.PlayerXPNeededToLevelUp
+	p.PlayerXPNeededCurrentLevel = badges.Response.PlayerXPNeededCurrentLevel
+	return nil
+}
+
+func GetSteamLevelDistribution(s Steam, p *Player) error {
+	url := fmt.Sprintf("https://api.steampowered.com/IPlayerService/GetSteamLevelDistribution/v1/?key=%s&player_level=%d", s.Key, p.PlayerLevel)
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	level := PlayerResponse{}
+	json.Unmarshal(b, &level)
+	p.PlayerLevelPercentile = level.Response.PlayerLevelPercentile
+	return nil
 }
 
 // Status returns the player's status as an emoji
@@ -140,103 +217,6 @@ func (p Player) LastSeen() string {
 		return UnixToDate(int64(p.LastLogOff))
 	}
 	return UnixToDate(0)
-}
-
-// bans returns ban information related to a player
-func bans(s Steam, p *Player) error {
-	url := fmt.Sprintf("https://api.steampowered.com/ISteamUser/GetPlayerBans/v1/?key=%s&steamids=%s", s.Key, p.SteamID)
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
-	}
-
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	bans := Response{}
-	json.Unmarshal(b, &bans)
-	p.CommunityBanned = bans.Profiles[0].CommunityBanned
-	p.VACBanned = bans.Profiles[0].VACBanned
-	p.NumOfVacBans = bans.Profiles[0].NumOfVacBans
-	p.DaysSinceLastBan = bans.Profiles[0].DaysSinceLastBan
-	p.NumOfGameBans = bans.Profiles[0].NumOfGameBans
-	p.EconomyBan = bans.Profiles[0].EconomyBan
-	return nil
-}
-
-// badges returns the player's badges
-func badges(s Steam, p *Player) error {
-	url := fmt.Sprintf("https://api.steampowered.com/IPlayerService/GetBadges/v1/?key=%s&steamid=%s", s.Key, p.SteamID)
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
-	}
-
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	badges := PlayerResponse{}
-	json.Unmarshal(b, &badges)
-	p.Badges = badges.Response.Badges
-	return nil
-}
-
-// profileLevel returns the player's level
-func profileLevel(s Steam, p *Player) error {
-	url := fmt.Sprintf("https://api.steampowered.com/IPlayerService/GetSteamLevel/v1/?key=%s&steamid=%s", s.Key, p.SteamID)
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
-	}
-
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	level := PlayerResponse{}
-	json.Unmarshal(b, &level)
-	p.PlayerLevel = level.Response.PlayerLevel
-	return nil
-}
-
-// playerLevelPercentile returns the player's level percentile
-func playerLevelPercentile(s Steam, p *Player) error {
-	url := fmt.Sprintf("https://api.steampowered.com/IPlayerService/GetSteamLevelDistribution/v1/?key=%s&player_level=%d", s.Key, p.PlayerLevel)
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
-	}
-
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	level := PlayerResponse{}
-	json.Unmarshal(b, &level)
-	p.PlayerLevelPercentile = level.Response.PlayerLevelPercentile
-	return nil
 }
 
 // UnixToDate converts a Unix timestamp to a human-readable string.

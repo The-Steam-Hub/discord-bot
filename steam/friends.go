@@ -21,7 +21,7 @@ type Friend struct {
 	FriendsSince int64  `json:"friend_since"`
 }
 
-func (s *Steam) Friends(ID string) (FriendsList, error) {
+func (s *Steam) GetFriendsList(ID string) (FriendsList, error) {
 	url := fmt.Sprintf("http://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key=%s&steamid=%s&relationship=friend", s.Key, ID)
 	resp, err := http.Get(url)
 	if err != nil {

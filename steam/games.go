@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 )
 
@@ -26,8 +27,8 @@ type GameStats struct {
 	PlayTime2Weeks         int    `json:"playtime_2weeks"`
 }
 
-// Games retrives a list of all games owned by the user, incuding free to play games
-func (s *Steam) Games(ID string) (GamesList, error) {
+// GetOwnedGames retrives a list of all games owned by the user, incuding free to play games
+func (s *Steam) GetOwnedGames(ID string) (GamesList, error) {
 	url := fmt.Sprintf("http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=%s&steamid=%s&format=json&include_appinfo=true&include_played_free_games=true", s.Key, ID)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -48,8 +49,8 @@ func (s *Steam) Games(ID string) (GamesList, error) {
 	return gamesResponse.GamesList, nil
 }
 
-// RecentGames retrives a list of games played by the user in the last 2 weeks
-func (s *Steam) RecentGames(ID string) (GamesList, error) {
+// GetRecentlyPlayedGames retrives a list of games played by the user in the last 2 weeks
+func (s *Steam) GetRecentlyPlayedGames(ID string) (GamesList, error) {
 	url := fmt.Sprintf("http://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?key=%s&steamid=%s&format=json", s.Key, ID)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -83,6 +84,19 @@ func (g *GamesList) MostPlayed() GameStats {
 	return GameStats{}
 }
 
+func (g *GamesList) LeastPlayed() GameStats {
+	if len(g.Games) != 0 {
+		lowest := GameStats{PlayTimeForever: math.MaxInt32}
+		for _, game := range g.Games {
+			if (game.PlayTimeForever < lowest.PlayTimeForever) && game.PlayTimeForever > 0 {
+				lowest = game
+			}
+		}
+		return lowest
+	}
+	return GameStats{}
+}
+
 func (g *GamesList) TotalHoursPlayed() int {
 	total := 0
 	for _, game := range g.Games {
@@ -91,7 +105,7 @@ func (g *GamesList) TotalHoursPlayed() int {
 	return total / 60
 }
 
-func (g *GamesList) HoursPlayed2Weeks() int {
+func (g *GamesList) RecentHoursPlayed() int {
 	total := 0
 	for _, game := range g.Games {
 		total += game.PlayTime2Weeks
