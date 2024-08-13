@@ -18,7 +18,9 @@ Commands:
     id         Prints various Steam IDs for a user
 
 Examples:
+    !stats profile [U:1:110439373]
     !stats profile 76561198070705101
+    !stats profile STEAM_1:1:55219686
     !stats profile https://steamcommunity.com/id/TheLordSquirrel/
 ```
 

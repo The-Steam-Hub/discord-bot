@@ -74,28 +74,28 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	if args[command] == "profile" && len(args) == 3 {
-		resolvedID := steamClient.ResolveIDFromURL(args[ID])
-		cmd.Profile(s, m, steamClient, resolvedID)
+		id, _ := steamClient.ParseSteamID(args[ID])
+		cmd.Profile(s, m, steamClient, id)
 		return
 	}
 	if args[command] == "id" && len(args) == 3 {
-		resolvedID := steamClient.ResolveIDFromURL(args[ID])
-		cmd.ID(s, m, steamClient, resolvedID)
+		id, _ := steamClient.ParseSteamID(args[ID])
+		cmd.ID(s, m, steamClient, id)
 		return
 	}
 	if args[command] == "friends" && len(args) == 3 {
-		resolvedID := steamClient.ResolveIDFromURL(args[ID])
-		cmd.Friends(s, m, steamClient, resolvedID)
+		id, _ := steamClient.ParseSteamID(args[ID])
+		cmd.Friends(s, m, steamClient, id)
 		return
 	}
 	if args[command] == "games" && len(args) == 3 {
-		resolvedID := steamClient.ResolveIDFromURL(args[ID])
-		cmd.Games(s, m, steamClient, resolvedID)
+		id, _ := steamClient.ParseSteamID(args[ID])
+		cmd.Games(s, m, steamClient, id)
 		return
 	}
 	if args[command] == "bans" && len(args) == 3 {
-		resolvedID := steamClient.ResolveIDFromURL(args[ID])
-		cmd.Bans(s, m, steamClient, resolvedID)
+		id, _ := steamClient.ParseSteamID(args[ID])
+		cmd.Bans(s, m, steamClient, id)
 		return
 	}
 	cmd.Help(s, m)
