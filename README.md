@@ -4,7 +4,10 @@ Steam Stats is a Discord bot designed to enrich your gaming community with detai
 
 ## Commands
 
-You can invoked the help command with either `!stats help` or just `!stats`. This will give you detailed instructions on how to use the Steam Stats bot:
+#### help
+
+`!stats help` or `!stats`
+
 ```
 Usage:
     !stats [command] [Steam ID, Steam ID3, Steam ID64, Steam URL]
@@ -23,9 +26,28 @@ Examples:
     !stats profile STEAM_1:1:55219686
     !stats profile https://steamcommunity.com/id/TheLordSquirrel/
 ```
+#### ID
+`!stats id https://steamcommunity.com/id/TheLordSquirrel/`
 
-## Output
+![id](./assets/id.png)
 
-By using the commands provided, the bot will display certain information about a user. However, the details shown may vary depending on the user's privacy settings. If their account is set to private, some fields may not be visible. Below is the output for each command listed above:
+#### Profile
+`!stats profile https://steamcommunity.com/id/TheLordSquirrel/`
 
-![commands](./assets/commands.png)
+![profile](./assets/profile.png)
+
+#### Friends
+`!stats friends https://steamcommunity.com/id/TheLordSquirrel/`
+
+![friends](./assets/friends.png)
+
+#### Bans
+`!stats bans https://steamcommunity.com/id/TheLordSquirrel/`
+
+![bans](./assets/bans.png)
+
+#### Games
+`!stats games https://steamcommunity.com/id/TheLordSquirrel/`
+
+![games](./assets/games.png)
+
