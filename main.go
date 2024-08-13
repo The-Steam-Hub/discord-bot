@@ -9,6 +9,7 @@ import (
 	"github.com/KevinFagan/steam-stats/cmd"
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
+	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,9 +19,10 @@ const (
 )
 
 var (
-	discordToken = os.Getenv("DISCORD_BOT_TOKEN_DEV")
-	steamKey     = os.Getenv("STEAM_API_KEY")
-	steamClient  = steam.Steam{Key: steamKey}
+	prefix       = ""
+	steamKey     = ""
+	discordToken = ""
+	steamClient  = steam.Steam{}
 )
 
 func main() {
@@ -29,13 +31,15 @@ func main() {
 		ForceColors:   true,
 	})
 
+	logrus.Info("loading configurations...")
+	loadEnvironment()
+
 	logrus.Info("creating Discord session...")
 	dg, err := discordgo.New("Bot " + discordToken)
 	if err != nil {
 		logrus.Fatalf("error creating Discord session: %s\n", err)
 		return
 	}
-
 	dg.AddHandler(messageCreate)
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
 
@@ -50,7 +54,6 @@ func main() {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
-
 	dg.Close()
 }
 
@@ -59,7 +62,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
-	if !strings.HasPrefix(m.Content, "!dev-stats") {
+
+	if !strings.HasPrefix(m.Content, prefix) {
 		return
 	}
 
@@ -95,4 +99,21 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	cmd.Help(s, m)
+}
+
+func loadEnvironment() {
+	env := os.Getenv("BOT_ENV")
+	if env == "" {
+		env = "development"
+	}
+
+	err := godotenv.Load(".env." + env)
+	if err != nil {
+		logrus.Fatalf("error loading .env file: %s", err)
+	}
+
+	prefix = os.Getenv("PREFIX")
+	steamKey = os.Getenv("STEAM_API_KEY")
+	discordToken = os.Getenv("DISCORD_BOT_TOKEN")
+	steamClient = steam.Steam{Key: steamKey}
 }
