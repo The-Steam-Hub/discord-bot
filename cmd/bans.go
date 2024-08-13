@@ -19,6 +19,7 @@ func Bans(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.St
 	}
 
 	logrus.WithFields(logs).Info("command recieved")
+
 	player, err := steamClient.GetPlayerSummariesWithExtra(steamID)
 	if err != nil {
 		logs["error"] = err

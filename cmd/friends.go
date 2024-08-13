@@ -47,10 +47,13 @@ func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 
 	// Sorting the friends list so we display the oldest friends first
 	sortedFriendsList := steam.SortFriends(friendsList)
-	// Capping the friends list to avoid message overflow issues with DiscordW
+	// Capping the friends list to avoid message overflow issues with Discord
 	sortedCappedFriendsList := sortedFriendsList[:int(math.Min(float64(len(sortedFriendsList)), cap))]
-	// Assigning the newest friend to the last index. This allows us to grab the name of the newest friend in the same API call as the other 49 friends
-	sortedCappedFriendsList[len(sortedCappedFriendsList)-1] = sortedFriendsList[len(sortedFriendsList)-1]
+	// Length may be zero if the players account is private
+	if len(sortedCappedFriendsList) > 0 {
+		// Assigning the newest friend to the last index. This allows us to grab the name of the newest friend in the same API call as the other 49 friends
+		sortedCappedFriendsList[len(sortedCappedFriendsList)-1] = sortedFriendsList[len(sortedFriendsList)-1]
+	}
 
 	// Getting player information for all friends within the cap range
 	players, err := steamClient.GetPlayerSummaries(steam.GetFriendIDs(sortedFriendsList)[:len(sortedCappedFriendsList)]...)
@@ -73,9 +76,13 @@ func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 		}
 	}
 
-	names, statuses, friendsSince := "", "", ""
-	oldest := sortedCappedFriendsList[0].ID
-	newest := sortedCappedFriendsList[len(sortedCappedFriendsList)-1].ID
+	names, statuses, friendsSince, oldest, newest := "", "", "", "", ""
+
+	// Length may be zero if the players account is private
+	if len(sortedCappedFriendsList) > 0 {
+		oldest = sortedCappedFriendsList[0].ID
+		newest = sortedCappedFriendsList[len(sortedCappedFriendsList)-1].ID
+	}
 
 	for k, i := range friendData {
 		// Avoid adding the last entry (newest friend) if we are at the cap
