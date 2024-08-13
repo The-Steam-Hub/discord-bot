@@ -104,7 +104,7 @@ func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 	embedInfo := EmbededInfo(player[0])
 	embedMessage := &discordgo.MessageEmbed{
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "Friend information is dependent upon the user's privacy settings and any friend information displayed is capped to 50 due to Discord message limiations.",
+			Text: "Friend information is dependent upon the user's privacy settings.",
 		},
 		Color:     embedInfo.Color,
 		Thumbnail: embedInfo.Thumbnail,
@@ -126,7 +126,7 @@ func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 				Inline: true,
 			},
 			{
-				Name:   "Friends",
+				Name:   "Friends (Top 50)",
 				Value:  DefaultStringValue(names),
 				Inline: true,
 			},
