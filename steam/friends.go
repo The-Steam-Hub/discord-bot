@@ -56,7 +56,7 @@ func SortFriends(friends []Friend) []Friend {
 	return friends
 }
 
-func GetFriendsIDs(friends []Friend) []string {
+func GetFriendIDs(friends []Friend) []string {
 	IDs := make([]string, len(friends))
 	for k, v := range friends {
 		IDs[k] = v.ID

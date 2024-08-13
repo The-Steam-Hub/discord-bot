@@ -49,14 +49,14 @@ func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 	sortedCappedFriendsList[len(sortedCappedFriendsList)-1] = sortedFriendsList[len(sortedFriendsList)-1]
 
 	// Getting player information for all friends within the cap range
-	players, err := steamClient.GetPlayerSummaries(steam.GetFriendsIDs(sortedFriendsList)[:len(sortedCappedFriendsList)]...)
+	players, err := steamClient.GetPlayerSummaries(steam.GetFriendIDs(sortedFriendsList)[:len(sortedCappedFriendsList)]...)
 	if err != nil {
 		logs["error"] = err
 		logrus.WithFields(logs).Error("unable to retrieve player information")
 	}
 
-	// Tying the player data (name) to the friend data (friendsSince)
-	// This data exists in two seperate API calls so this logic is required
+	// Friend data and Player data exists in two seperate API calls, and so, we need to tie the data together
+	// The data is already sorted and is persisted in the friendData slice
 	friendData := make([]FriendData, len(players))
 	for _, v := range players {
 		for k, j := range sortedCappedFriendsList {
