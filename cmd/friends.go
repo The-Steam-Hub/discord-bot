@@ -10,6 +10,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	cap = 50
+)
+
 type FriendData struct {
 	Friend steam.Friend
 	Player steam.Player
@@ -44,7 +48,7 @@ func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 	// Sorting the friends list so we display the oldest friends first
 	sortedFriendsList := steam.SortFriends(friendsList)
 	// Capping the friends list to avoid message overflow issues with DiscordW
-	sortedCappedFriendsList := sortedFriendsList[:int(math.Min(float64(len(sortedFriendsList)), 50))]
+	sortedCappedFriendsList := sortedFriendsList[:int(math.Min(float64(len(sortedFriendsList)), cap))]
 	// Assigning the newest friend to the last index. This allows us to grab the name of the newest friend in the same API call as the other 49 friends
 	sortedCappedFriendsList[len(sortedCappedFriendsList)-1] = sortedFriendsList[len(sortedFriendsList)-1]
 
@@ -73,11 +77,13 @@ func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 	oldest := sortedCappedFriendsList[0].ID
 	newest := sortedCappedFriendsList[len(sortedCappedFriendsList)-1].ID
 
-	for _, i := range friendData {
-		names += fmt.Sprintf("%s\n", i.Player.Name)
-		statuses += fmt.Sprintf("%s\n", i.Player.Status())
-		friendsSince += fmt.Sprintf("%s\n", steam.UnixToDate(i.Friend.FriendsSince))
-
+	for k, i := range friendData {
+		// Avoid adding the last entry (newest friend) if we are at the cap
+		if k < cap-1 {
+			names += fmt.Sprintf("%s\n", i.Player.Name)
+			statuses += fmt.Sprintf("%s\n", i.Player.Status())
+			friendsSince += fmt.Sprintf("%s\n", steam.UnixToDate(i.Friend.FriendsSince))
+		}
 		// Finding the name that belongs to the newest ID
 		if i.Player.SteamID == newest {
 			newest = i.Player.Name
