@@ -21,63 +21,45 @@ type Friend struct {
 	FriendsSince int64  `json:"friend_since"`
 }
 
-func (s *Steam) GetFriendsList(ID string) (FriendsList, error) {
+func (s *Steam) GetFriendsList(ID string) ([]Friend, error) {
 	url := fmt.Sprintf("http://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key=%s&steamid=%s&relationship=friend", s.Key, ID)
 	resp, err := http.Get(url)
 	if err != nil {
-		return FriendsList{}, err
+		return []Friend{}, err
 	}
 
 	if resp.StatusCode != 200 {
-		return FriendsList{}, fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
+		return []Friend{}, fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
 	}
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return FriendsList{}, err
+		return []Friend{}, err
 	}
 
 	freindsList := FriendsResponse{}
 	json.Unmarshal(b, &freindsList)
-	return freindsList.FriendsList, nil
+	return freindsList.FriendsList.Friends, nil
 }
 
-func (f FriendsList) Oldest() Friend {
-	if len(f.Friends) > 0 {
-		oldest := f.Friends[0]
-		for _, current := range f.Friends {
-			if current.Relationship == "friend" {
-				if current.FriendsSince < oldest.FriendsSince {
-					oldest = current
-				}
+func SortFriends(friends []Friend) []Friend {
+	length := len(friends)
+	for i := 0; i < length-1; i++ {
+		for j := i + 1; j < length; j++ {
+			left := friends[i].FriendsSince
+			right := friends[j].FriendsSince
+			if left > right {
+				friends[i], friends[j] = friends[j], friends[i]
 			}
 		}
-		return oldest
 	}
-	return Friend{}
+	return friends
 }
 
-func (f FriendsList) Newest() Friend {
-	if len(f.Friends) > 0 {
-		newest := f.Friends[0]
-		for _, current := range f.Friends {
-			if current.Relationship == "friend" {
-				if current.FriendsSince > newest.FriendsSince {
-					newest = current
-				}
-			}
-		}
-		return newest
+func GetFriendsIDs(friends []Friend) []string {
+	IDs := make([]string, len(friends))
+	for k, v := range friends {
+		IDs[k] = v.ID
 	}
-	return Friend{}
-}
-
-func (f FriendsList) Count() int {
-	var count int
-	for _, friend := range f.Friends {
-		if friend.Relationship == "friend" {
-			count++
-		}
-	}
-	return count
+	return IDs
 }

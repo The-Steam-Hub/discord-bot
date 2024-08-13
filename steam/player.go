@@ -15,7 +15,6 @@ type PlayerResponse struct {
 
 type Response struct {
 	Profiles                   []Player `json:"players"`
-	Badges                     []Badge  `json:"badges"`
 	PlayerXP                   int      `json:"player_xp"`
 	PlayerLevel                int      `json:"player_level"`
 	PlayerLevelPercentile      float64  `json:"player_level_percentile"`
@@ -45,20 +44,10 @@ type Player struct {
 	PlayerXPNeededToLevelUp    int
 	PlayerXPNeededCurrentLevel int
 	PersonaState               int
-	Badges                     []Badge
-}
-
-type Badge struct {
-	BadgeID        int `json:"badgeid"`
-	Level          int `json:"level"`
-	CompletionTime int `json:"completion_time"`
-	XP             int `json:"xp"`
-	Scarcity       int `json:"scarcity"`
 }
 
 func (s Steam) GetPlayerSummaries(ID ...string) ([]Player, error) {
-	cappedID := ID[:min(len(ID), 100)]
-	url := fmt.Sprintf("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=%s&steamids=%s", s.Key, strings.Join(cappedID, ","))
+	url := fmt.Sprintf("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=%s&steamids=%s", s.Key, strings.Join(ID, ","))
 	resp, err := http.Get(url)
 	if err != nil {
 		return []Player{}, err
@@ -150,7 +139,6 @@ func GetBadges(s Steam, p *Player) error {
 
 	badges := PlayerResponse{}
 	json.Unmarshal(b, &badges)
-	p.Badges = badges.Response.Badges
 	p.PlayerXP = badges.Response.PlayerXP
 	p.PlayerLevel = badges.Response.PlayerLevel
 	p.PlayerXPNeededToLevelUp = badges.Response.PlayerXPNeededToLevelUp
