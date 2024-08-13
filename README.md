@@ -1,4 +1,4 @@
-<div style="display: flex; align-items: center;">
+<div>
   <img src="./assets/steam.png" width="40" height="40" style="margin-right: 10px;">
   <h2 >Steam Stats</h2>
 </div>
