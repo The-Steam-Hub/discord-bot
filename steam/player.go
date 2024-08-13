@@ -173,7 +173,7 @@ func (p Player) Status() string {
 	var statusEmoji string
 	switch p.PersonaState {
 	case 0:
-		statusEmoji = "⚫️" // Black circle for Offline
+		statusEmoji = "⚫" // Black circle for Offline
 	case 1:
 		statusEmoji = "🟢" // Green circle for Online
 	case 2:

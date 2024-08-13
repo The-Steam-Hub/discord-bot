@@ -30,9 +30,6 @@ func Bans(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.St
 
 	embedInfo := EmbededInfo(player)
 	embedMessage := &discordgo.MessageEmbed{
-		Footer: &discordgo.MessageEmbedFooter{
-			Text: "Ban information is dependent upon the user's privacy settings.",
-		},
 		Color:     embedInfo.Color,
 		Thumbnail: embedInfo.Thumbnail,
 		Author:    embedInfo.Author,
