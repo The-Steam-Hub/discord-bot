@@ -25,7 +25,7 @@ Examples:
     !stats profile https://steamcommunity.com/id/TheLordSquirrel/
 ```
 
-## Provided Information 
+## Statistics
 
 By using the available commands outlined above, you can access the following information. Please be aware that certain details may be redacted based on the user's privacy settings.
 
