@@ -2,6 +2,7 @@ package steam
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -46,6 +47,8 @@ type Player struct {
 	PersonaState               int
 }
 
+var ErrUserNotFound = errors.New("user not found")
+
 func (s Steam) GetPlayerSummaries(ID ...string) ([]Player, error) {
 	url := fmt.Sprintf("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=%s&steamids=%s", s.Key, strings.Join(ID, ","))
 	resp, err := http.Get(url)
@@ -68,7 +71,7 @@ func (s Steam) GetPlayerSummaries(ID ...string) ([]Player, error) {
 	// Steam will still return a 200 if the user is not found
 	// so we need to check if the response is empty
 	if len(list.Response.Profiles) == 0 {
-		return []Player{}, fmt.Errorf("user not found")
+		return []Player{}, ErrUserNotFound
 	}
 
 	return list.Response.Profiles, nil

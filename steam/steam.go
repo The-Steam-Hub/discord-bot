@@ -2,7 +2,6 @@ package steam
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,39 +14,37 @@ type Steam struct {
 	Key string
 }
 
-type VanityResponse struct {
-	Vanity Vanity `json:"response"`
-}
-
 type Vanity struct {
 	SteamID string `json:"steamid"`
 }
 
-func (s *Steam) ParseSteamID(input string) (string, error) {
-	// Check if the input is already a SteamID64
+func (s *Steam) ResolveID(input string) (string, error) {
+	// Steam ID64
 	if _, err := strconv.ParseUint(input, 10, 64); err == nil {
 		return input, nil
 	}
 
-	// Check if the input is a Steam URL
-	if strings.HasPrefix(input, "https://steamcommunity.com") {
-		return s.GetIDFromURL(input), nil
-	}
-
-	// Check if the input is SteamID3
+	// STEAM ID3
 	if strings.HasPrefix(input, "[U:1:") {
 		return SteamID3ToSteamID64(input)
 	}
 
-	// Check if the input is SteamID
+	// STEAM ID
 	if strings.HasPrefix(input, "STEAM_") {
 		return SteamIDToSteamID64(input)
 	}
 
-	return "", errors.New("unknown Steam ID format")
+	// Steam URL
+	if strings.HasPrefix(input, "https://steamcommunity.com") {
+		return s.ResolveIDFromURL(input), nil
+	}
+
+	// Steam Vanity
+	vanityURL, err := s.ResolveVanityURL(input)
+	return vanityURL.SteamID, err
 }
 
-func (s *Steam) GetIDFromURL(url string) string {
+func (s *Steam) ResolveIDFromURL(url string) string {
 	vanityRegex := regexp.MustCompile(`https:\/\/steamcommunity\.com\/id\/([^\/]+)`)
 	IDRegex := regexp.MustCompile(`https:\/\/steamcommunity\.com\/profiles\/(\d+)`)
 
@@ -85,9 +82,14 @@ func (s *Steam) ResolveVanityURL(vanityURL string) (Vanity, error) {
 		return Vanity{}, err
 	}
 
-	VanityResponse := VanityResponse{}
-	json.Unmarshal(b, &VanityResponse)
-	return VanityResponse.Vanity, nil
+	var response struct {
+		Vanity struct {
+			SteamID string `json:"steamid"`
+		} `json:"response"`
+	}
+
+	json.Unmarshal(b, &response)
+	return response.Vanity, nil
 }
 
 func SteamID64ToSteamID(steamID64 uint64) string {
@@ -121,6 +123,5 @@ func SteamIDToSteamID64(steamID string) (string, error) {
 	}
 	accountID := accountNumber*2 + authServer
 	steamID64 := (uint64(universe) << 56) | (1 << 52) | (1 << 32) | uint64(accountID)
-
 	return strconv.FormatUint(steamID64, 10), nil
 }

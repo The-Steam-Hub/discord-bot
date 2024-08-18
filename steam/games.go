@@ -8,10 +8,6 @@ import (
 	"net/http"
 )
 
-type GamesResponse struct {
-	GamesList GamesList `json:"response"`
-}
-
 type GamesList struct {
 	Games []GameStats `json:"games"`
 }
@@ -44,9 +40,12 @@ func (s *Steam) GetOwnedGames(ID string) (GamesList, error) {
 		return GamesList{}, err
 	}
 
-	gamesResponse := GamesResponse{}
-	json.Unmarshal(b, &gamesResponse)
-	return gamesResponse.GamesList, nil
+	var response struct {
+		GamesList GamesList `json:"response"`
+	}
+
+	json.Unmarshal(b, &response)
+	return response.GamesList, nil
 }
 
 // GetRecentlyPlayedGames retrives a list of games played by the user in the last 2 weeks
@@ -66,9 +65,12 @@ func (s *Steam) GetRecentlyPlayedGames(ID string) (GamesList, error) {
 		return GamesList{}, err
 	}
 
-	gamesResponse := GamesResponse{}
-	json.Unmarshal(b, &gamesResponse)
-	return gamesResponse.GamesList, nil
+	var response struct {
+		GamesList GamesList `json:"response"`
+	}
+
+	json.Unmarshal(b, &response)
+	return response.GamesList, nil
 }
 
 func (g *GamesList) MostPlayed() GameStats {

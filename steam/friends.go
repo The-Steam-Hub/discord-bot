@@ -7,14 +7,6 @@ import (
 	"net/http"
 )
 
-type FriendsResponse struct {
-	FriendsList FriendsList `json:"friendslist"`
-}
-
-type FriendsList struct {
-	Friends []Friend `json:"friends"`
-}
-
 type Friend struct {
 	ID           string `json:"steamid"`
 	Relationship string `json:"relationship"`
@@ -37,9 +29,14 @@ func (s *Steam) GetFriendsList(ID string) ([]Friend, error) {
 		return []Friend{}, err
 	}
 
-	freindsList := FriendsResponse{}
-	json.Unmarshal(b, &freindsList)
-	return freindsList.FriendsList.Friends, nil
+	var response struct {
+		FriendsList struct {
+			Friends []Friend `json:"friends"`
+		} `json:"friendslist"`
+	}
+
+	json.Unmarshal(b, &response)
+	return response.FriendsList.Friends, nil
 }
 
 func SortFriends(friends []Friend) []Friend {

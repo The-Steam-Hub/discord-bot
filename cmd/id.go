@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/KevinFagan/steam-stats/steam"
@@ -9,11 +10,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ID(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.Steam, steamID string) {
+func ID(s *discordgo.Session, i *discordgo.InteractionCreate, steamClient steam.Steam, steamID string) {
 	logs := logrus.Fields{
 		"command": "id",
 		"player":  steamID,
-		"author":  m.Author.Username,
 		"uuid":    uuid.New().String(),
 	}
 
@@ -23,7 +23,21 @@ func ID(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.Stea
 	if err != nil {
 		logs["error"] = err
 		logrus.WithFields(logs).Error("unable to retrieve player information")
-		s.ChannelMessageSend(m.ChannelID, "unable to retrieve player information")
+
+		// attempt to send the error back to the user
+		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Unable to retrieve player information",
+			},
+		})
+
+		// unable to send the message. This could be due to discord permission settings
+		logs["error"] = err
+		if err != nil {
+			logrus.WithFields(logs).Error("unable to send message")
+		}
+
 		return
 	}
 
@@ -31,11 +45,15 @@ func ID(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.Stea
 	steamID64 := steam.SteamID64ToSteamID(steamIDInt)
 	steamID3 := steam.SteamID64ToSteamID3(steamIDInt)
 
-	embedInfo := EmbededInfo(player[0])
 	embedMessage := &discordgo.MessageEmbed{
-		Color:     embedInfo.Color,
-		Thumbnail: embedInfo.Thumbnail,
-		Author:    embedInfo.Author,
+		Color: 0x66c0f4,
+		Thumbnail: &discordgo.MessageEmbedThumbnail{
+			URL: player[0].AvatarFull,
+		},
+		Author: &discordgo.MessageEmbedAuthor{
+			Name: fmt.Sprintf("%s %s", player[0].Status(), player[0].Name),
+			URL:  player[0].ProfileURL,
+		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Steam ID",
@@ -54,5 +72,11 @@ func ID(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.Stea
 			},
 		},
 	}
-	s.ChannelMessageSendEmbed(m.ChannelID, embedMessage)
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{embedMessage},
+		},
+	})
 }
