@@ -3,8 +3,6 @@ package main
 import (
 	"os"
 	"os/signal"
-	"strings"
-	"syscall"
 
 	"github.com/KevinFagan/steam-stats/cmd"
 	"github.com/KevinFagan/steam-stats/steam"
@@ -13,95 +11,129 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	command = 1
-	ID      = 2
+var s *discordgo.Session
+
+var (
+	steamToken   string
+	discordToken string
+	steamClient  steam.Steam
 )
 
 var (
-	prefix       = ""
-	steamKey     = ""
-	discordToken = ""
-	steamClient  = steam.Steam{}
+	commands = []*discordgo.ApplicationCommand{
+		{
+			Name:        "stats",
+			Description: "Fetches statistics related to one of the subcommand",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "player",
+					Description: "Fetches player statistics",
+					Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "profile",
+							Description: "Fetches statistics about a players profile",
+							Type:        discordgo.ApplicationCommandOptionSubCommand,
+							Options: []*discordgo.ApplicationCommandOption{
+								{
+									Name:        "value",
+									Description: "Steam Identifier",
+									Type:        discordgo.ApplicationCommandOptionString,
+									Required:    true,
+								},
+							},
+						},
+						{
+							Name:        "games",
+							Description: "Fetches statistics about a players game library",
+							Type:        discordgo.ApplicationCommandOptionSubCommand,
+							Options: []*discordgo.ApplicationCommandOption{
+								{
+									Name:        "value",
+									Description: "Steam Identifier",
+									Type:        discordgo.ApplicationCommandOptionString,
+									Required:    true,
+								},
+							},
+						},
+						{
+							Name:        "bans",
+							Description: "Fetches statistics about a players bans histroy",
+							Type:        discordgo.ApplicationCommandOptionSubCommand,
+							Options: []*discordgo.ApplicationCommandOption{
+								{
+									Name:        "value",
+									Description: "Steam Identifier",
+									Type:        discordgo.ApplicationCommandOptionString,
+									Required:    true,
+								},
+							},
+						},
+						{
+							Name:        "friends",
+							Description: "Fetches statistics about a players friends list",
+							Type:        discordgo.ApplicationCommandOptionSubCommand,
+							Options: []*discordgo.ApplicationCommandOption{
+								{
+									Name:        "value",
+									Description: "Steam Identifier",
+									Type:        discordgo.ApplicationCommandOptionString,
+									Required:    true,
+								},
+							},
+						},
+						{
+							Name:        "id",
+							Description: "Fetches multiple formats of the players Steam ID",
+							Type:        discordgo.ApplicationCommandOptionSubCommand,
+							Options: []*discordgo.ApplicationCommandOption{
+								{
+									Name:        "value",
+									Description: "Steam Identifier",
+									Type:        discordgo.ApplicationCommandOptionString,
+									Required:    true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	commandHandler = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"stats": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			for _, st := range i.ApplicationCommandData().Options {
+				switch st.Name {
+				case "player":
+					for _, p := range st.Options {
+						switch p.Name {
+						case "profile":
+							id, _ := steamClient.ParseSteamID(p.Options[0].StringValue())
+							cmd.Profile(s, i, steamClient, id)
+						case "games":
+							id, _ := steamClient.ParseSteamID(p.Options[0].StringValue())
+							cmd.Games(s, i, steamClient, id)
+						case "friends":
+							id, _ := steamClient.ParseSteamID(p.Options[0].StringValue())
+							cmd.Friends(s, i, steamClient, id)
+						case "bans":
+							id, _ := steamClient.ParseSteamID(p.Options[0].StringValue())
+							cmd.Bans(s, i, steamClient, id)
+						case "id":
+							id, _ := steamClient.ParseSteamID(p.Options[0].StringValue())
+							cmd.Profile(s, i, steamClient, id)
+						}
+					}
+				}
+			}
+		},
+	}
 )
 
-func main() {
-	logrus.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-		ForceColors:   true,
-	})
-
+func init() {
 	logrus.Info("loading configurations...")
-	loadEnvironment()
 
-	logrus.Info("creating Discord session...")
-	dg, err := discordgo.New("Bot " + discordToken)
-	if err != nil {
-		logrus.Fatalf("error creating Discord session: %s\n", err)
-		return
-	}
-	dg.AddHandler(messageCreate)
-	dg.Identify.Intents = discordgo.IntentsGuildMessages
-
-	logrus.Info("opening websocket connection to Discord...")
-	err = dg.Open()
-	if err != nil {
-		logrus.Fatalf("error opening Discord websocket connection: %s\n", err)
-		return
-	}
-
-	logrus.Info("Steam Stats is now running.  Press CTRL-C to exit.")
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-	<-sc
-	dg.Close()
-}
-
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Ignore all messages created by the bot itself
-	if m.Author.ID == s.State.User.ID {
-		return
-	}
-
-	if !strings.HasPrefix(m.Content, prefix) {
-		return
-	}
-
-	args := strings.Split(strings.TrimSpace(m.Content), " ")
-
-	if len(args) == 1 {
-		cmd.Help(s, m)
-		return
-	}
-	if args[command] == "profile" && len(args) == 3 {
-		id, _ := steamClient.ParseSteamID(args[ID])
-		cmd.Profile(s, m, steamClient, id)
-		return
-	}
-	if args[command] == "id" && len(args) == 3 {
-		id, _ := steamClient.ParseSteamID(args[ID])
-		cmd.ID(s, m, steamClient, id)
-		return
-	}
-	if args[command] == "friends" && len(args) == 3 {
-		id, _ := steamClient.ParseSteamID(args[ID])
-		cmd.Friends(s, m, steamClient, id)
-		return
-	}
-	if args[command] == "games" && len(args) == 3 {
-		id, _ := steamClient.ParseSteamID(args[ID])
-		cmd.Games(s, m, steamClient, id)
-		return
-	}
-	if args[command] == "bans" && len(args) == 3 {
-		id, _ := steamClient.ParseSteamID(args[ID])
-		cmd.Bans(s, m, steamClient, id)
-		return
-	}
-	cmd.Help(s, m)
-}
-
-func loadEnvironment() {
 	env := os.Getenv("BOT_ENV")
 	if env == "" {
 		env = "development"
@@ -112,8 +144,48 @@ func loadEnvironment() {
 		logrus.Fatalf("error loading .env file: %s", err)
 	}
 
-	prefix = os.Getenv("PREFIX")
-	steamKey = os.Getenv("STEAM_API_KEY")
+	logrus.Infof("launching bot in %s mode...", env)
+
+	steamToken = os.Getenv("STEAM_API_KEY")
 	discordToken = os.Getenv("DISCORD_BOT_TOKEN")
-	steamClient = steam.Steam{Key: steamKey}
+	steamClient = steam.Steam{Key: steamToken}
+}
+
+func init() {
+	logrus.Info("creating Discord session...")
+
+	var err error
+	s, err = discordgo.New("Bot " + discordToken)
+	if err != nil {
+		logrus.Fatalf("error creating Discord session: %s", err)
+		return
+	}
+
+	s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if h, ok := commandHandler[i.ApplicationCommandData().Name]; ok {
+			h(s, i)
+		}
+	})
+
+	s.AddHandler(func(s *discordgo.Session, event *discordgo.Ready) {
+		s.ApplicationCommandCreate(s.State.User.ID, "", commands[0])
+	})
+}
+
+func main() {
+	logrus.Info("opening websocket connection to Discord...")
+
+	err := s.Open()
+	if err != nil {
+		logrus.Fatalf("error opening connection: %s", err)
+		return
+	}
+
+	logrus.Info("Steam Stats is now running. Press CTRL+C to exit.")
+	defer s.Close()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	<-stop
+
 }

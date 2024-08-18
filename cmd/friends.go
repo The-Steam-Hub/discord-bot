@@ -19,11 +19,10 @@ type FriendData struct {
 	Player steam.Player
 }
 
-func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.Steam, steamID string) {
+func Friends(s *discordgo.Session, i *discordgo.InteractionCreate, steamClient steam.Steam, steamID string) {
 	logs := logrus.Fields{
 		"command": "friends",
 		"player":  steamID,
-		"author":  m.Author.Username,
 		"uuid":    uuid.New().String(),
 	}
 
@@ -33,7 +32,7 @@ func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 	if err != nil {
 		logs["error"] = err
 		logrus.WithFields(logs).Error("unable to retrieve player information")
-		s.ChannelMessageSend(m.ChannelID, "unable to retrieve player information")
+		s.ChannelMessageSend(i.ChannelID, "unable to retrieve player information")
 		return
 	}
 
@@ -101,14 +100,18 @@ func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 		}
 	}
 
-	embedInfo := EmbededInfo(player[0])
 	embedMessage := &discordgo.MessageEmbed{
 		Footer: &discordgo.MessageEmbedFooter{
 			Text: "Friend information is dependent upon the user's privacy settings.",
 		},
-		Color:     embedInfo.Color,
-		Thumbnail: embedInfo.Thumbnail,
-		Author:    embedInfo.Author,
+		Color: 0x66c0f4,
+		Thumbnail: &discordgo.MessageEmbedThumbnail{
+			URL: player[0].AvatarFull,
+		},
+		Author: &discordgo.MessageEmbedAuthor{
+			Name: fmt.Sprintf("%s %s", player[0].Status(), player[0].Name),
+			URL:  player[0].ProfileURL,
+		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Newest",
@@ -126,7 +129,7 @@ func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 				Inline: true,
 			},
 			{
-				Name:   "Friends (Top 50)",
+				Name:   "Top 50 Friends",
 				Value:  DefaultStringValue(names),
 				Inline: true,
 			},
@@ -142,5 +145,11 @@ func Friends(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam
 			},
 		},
 	}
-	s.ChannelMessageSendEmbed(m.ChannelID, embedMessage)
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{embedMessage},
+		},
+	})
 }

@@ -10,11 +10,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Bans(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.Steam, steamID string) {
+func Bans(s *discordgo.Session, i *discordgo.InteractionCreate, steamClient steam.Steam, steamID string) {
 	logs := logrus.Fields{
 		"command": "bans",
 		"player":  steamID,
-		"author":  m.Author.Username,
 		"uuid":    uuid.New().String(),
 	}
 
@@ -24,15 +23,19 @@ func Bans(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.St
 	if err != nil {
 		logs["error"] = err
 		logrus.WithFields(logs).Error("unable to retrieve player information")
-		s.ChannelMessageSend(m.ChannelID, "unable to retrieve player information")
+		s.ChannelMessageSend(i.ChannelID, "unable to retrieve player information")
 		return
 	}
 
-	embedInfo := EmbededInfo(player)
 	embedMessage := &discordgo.MessageEmbed{
-		Color:     embedInfo.Color,
-		Thumbnail: embedInfo.Thumbnail,
-		Author:    embedInfo.Author,
+		Color: 0x66c0f4,
+		Thumbnail: &discordgo.MessageEmbedThumbnail{
+			URL: player.AvatarFull,
+		},
+		Author: &discordgo.MessageEmbedAuthor{
+			Name: fmt.Sprintf("%s %s", player.Status(), player.Name),
+			URL:  player.ProfileURL,
+		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "VAC Banned",
@@ -66,5 +69,11 @@ func Bans(s *discordgo.Session, m *discordgo.MessageCreate, steamClient steam.St
 			},
 		},
 	}
-	s.ChannelMessageSendEmbed(m.ChannelID, embedMessage)
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{embedMessage},
+		},
+	})
 }
