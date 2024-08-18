@@ -109,19 +109,19 @@ var (
 					for _, p := range st.Options {
 						switch p.Name {
 						case "profile":
-							id, _ := steamClient.ParseSteamID(p.Options[0].StringValue())
+							id, _ := steamClient.ResolveID(p.Options[0].StringValue())
 							cmd.Profile(s, i, steamClient, id)
 						case "games":
-							id, _ := steamClient.ParseSteamID(p.Options[0].StringValue())
+							id, _ := steamClient.ResolveID(p.Options[0].StringValue())
 							cmd.Games(s, i, steamClient, id)
 						case "friends":
-							id, _ := steamClient.ParseSteamID(p.Options[0].StringValue())
+							id, _ := steamClient.ResolveID(p.Options[0].StringValue())
 							cmd.Friends(s, i, steamClient, id)
 						case "bans":
-							id, _ := steamClient.ParseSteamID(p.Options[0].StringValue())
+							id, _ := steamClient.ResolveID(p.Options[0].StringValue())
 							cmd.Bans(s, i, steamClient, id)
 						case "id":
-							id, _ := steamClient.ParseSteamID(p.Options[0].StringValue())
+							id, _ := steamClient.ResolveID(p.Options[0].StringValue())
 							cmd.Profile(s, i, steamClient, id)
 						}
 					}
@@ -132,19 +132,17 @@ var (
 )
 
 func init() {
-	logrus.Info("loading configurations...")
-
 	env := os.Getenv("BOT_ENV")
 	if env == "" {
 		env = "development"
 	}
 
+	logrus.Info("loading configurations...")
 	err := godotenv.Load(".env." + env)
 	if err != nil {
 		logrus.Fatalf("error loading .env file: %s", err)
 	}
-
-	logrus.Infof("launching bot in %s mode...", env)
+	logrus.Infof("launching in %s mode...", env)
 
 	steamToken = os.Getenv("STEAM_API_KEY")
 	discordToken = os.Getenv("DISCORD_BOT_TOKEN")
@@ -153,7 +151,6 @@ func init() {
 
 func init() {
 	logrus.Info("creating Discord session...")
-
 	var err error
 	s, err = discordgo.New("Bot " + discordToken)
 	if err != nil {
@@ -168,17 +165,26 @@ func init() {
 	})
 
 	s.AddHandler(func(s *discordgo.Session, event *discordgo.Ready) {
-		s.ApplicationCommandCreate(s.State.User.ID, "", commands[0])
+		logrus.Infof("logging in as %s#%s", s.State.User.Username, s.State.User.Discriminator)
 	})
 }
 
 func main() {
 	logrus.Info("opening websocket connection to Discord...")
-
 	err := s.Open()
 	if err != nil {
 		logrus.Fatalf("error opening connection: %s", err)
 		return
+	}
+
+	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
+	for i, v := range commands {
+		cmd, err := s.ApplicationCommandCreate(s.State.User.ID, "", v)
+		logrus.Infof("creating command: %s", v.Name)
+		if err != nil {
+			logrus.Fatalf("cannot create %s command: %s", v.Name, err)
+		}
+		registeredCommands[i] = cmd
 	}
 
 	logrus.Info("Steam Stats is now running. Press CTRL+C to exit.")
@@ -188,4 +194,11 @@ func main() {
 	signal.Notify(stop, os.Interrupt)
 	<-stop
 
+	// for _, v := range registeredCommands {
+	// 	logrus.Infof("deleting command: %s", v.Name)
+	// 	err := s.ApplicationCommandDelete(s.State.User.ID, "", v.ID)
+	// 	if err != nil {
+	// 		logrus.Errorf("cannot delete command %s: %s", v.Name, err)
+	// 	}
+	// }
 }

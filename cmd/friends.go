@@ -32,7 +32,21 @@ func Friends(s *discordgo.Session, i *discordgo.InteractionCreate, steamClient s
 	if err != nil {
 		logs["error"] = err
 		logrus.WithFields(logs).Error("unable to retrieve player information")
-		s.ChannelMessageSend(i.ChannelID, "unable to retrieve player information")
+
+		// attempt to send the error back to the user
+		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Unable to retrieve player information",
+			},
+		})
+
+		// unable to send the message. This could be due to discord permission settings
+		logs["error"] = err
+		if err != nil {
+			logrus.WithFields(logs).Error("unable to send message")
+		}
+
 		return
 	}
 
@@ -41,7 +55,23 @@ func Friends(s *discordgo.Session, i *discordgo.InteractionCreate, steamClient s
 	friendsList, err := steamClient.GetFriendsList(player[0].SteamID)
 	if err != nil {
 		logs["error"] = err
-		logrus.WithFields(logs).Error("unable to retrieve friend information")
+		logrus.WithFields(logs).Error("unable to retrieve player information")
+
+		// attempt to send the error back to the user
+		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Unable to retrieve player information",
+			},
+		})
+
+		// unable to send the message. This could be due to discord permission settings
+		logs["error"] = err
+		if err != nil {
+			logrus.WithFields(logs).Error("unable to send message")
+		}
+
+		return
 	}
 
 	// Sorting the friends list so we display the oldest friends first
