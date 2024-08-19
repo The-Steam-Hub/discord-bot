@@ -1,4 +1,4 @@
-package cmd
+package message
 
 import (
 	"fmt"
@@ -6,42 +6,20 @@ import (
 
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
-	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
-func Profile(s *discordgo.Session, i *discordgo.InteractionCreate, steamClient steam.Steam, steamID string) {
-	logs := logrus.Fields{
-		"command": "profile",
-		"player":  steamID,
-		"uuid":    uuid.New().String(),
-	}
-	logrus.WithFields(logs).Info("command recieved")
-
-	player, err := steamClient.GetPlayerSummariesWithExtra(steamID)
-
+func ProfileEmbeddedMessage(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed, error) {
+	id, err := steamClient.ResolveID(steamID)
 	if err != nil {
-		logs["error"] = err
-		logrus.WithFields(logs).Error("unable to retrieve player information")
-
-		// attempt to send the error back to the user
-		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Unable to retrieve player information",
-			},
-		})
-
-		// unable to send the message. This could be due to discord permission settings
-		logs["error"] = err
-		if err != nil {
-			logrus.WithFields(logs).Error("unable to send message")
-		}
-
-		return
+		return nil, err
 	}
 
-	embedMessage := &discordgo.MessageEmbed{
+	player, err := steamClient.GetPlayerSummariesWithExtra(id)
+	if err != nil {
+		return nil, err
+	}
+
+	embMsg := &discordgo.MessageEmbed{
 		Footer: &discordgo.MessageEmbedFooter{
 			Text: "Profile information is dependent upon the user's privacy settings.",
 		},
@@ -101,13 +79,7 @@ func Profile(s *discordgo.Session, i *discordgo.InteractionCreate, steamClient s
 			},
 		},
 	}
-
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Embeds: []*discordgo.MessageEmbed{embedMessage},
-		},
-	})
+	return embMsg, nil
 }
 
 func DefaultStringValue(value string) string {

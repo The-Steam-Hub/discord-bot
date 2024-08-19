@@ -1,12 +1,14 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
 
-	"github.com/KevinFagan/steam-stats/cmd"
+	"github.com/KevinFagan/steam-stats/message"
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 )
@@ -20,6 +22,10 @@ var (
 )
 
 var (
+	logs = logrus.Fields{
+		"uuid": uuid.New().String(),
+	}
+
 	commands = []*discordgo.ApplicationCommand{
 		{
 			Name:        "stats",
@@ -107,29 +113,47 @@ var (
 				switch st.Name {
 				case "player":
 					for _, p := range st.Options {
+						value := p.Options[0].StringValue()
+						logs["value"] = value
+						logs["command"] = p.Name
+						logs["author"] = i.Interaction.Member.User
+
 						switch p.Name {
 						case "profile":
-							id, _ := steamClient.ResolveID(p.Options[0].StringValue())
-							cmd.Profile(s, i, steamClient, id)
+							logrus.WithFields(logs).Info("command recieved")
+							embMsg, err := message.ProfileEmbeddedMessage(steamClient, value)
+							message.HandleEmbeddedMessage(embMsg, s, i, logs, err)
 						case "games":
-							id, _ := steamClient.ResolveID(p.Options[0].StringValue())
-							cmd.Games(s, i, steamClient, id)
+							logrus.WithFields(logs).Info("command recieved")
+							embMsg, err := message.GamesEmbeddedMessage(steamClient, value)
+							message.HandleEmbeddedMessage(embMsg, s, i, logs, err)
 						case "friends":
-							id, _ := steamClient.ResolveID(p.Options[0].StringValue())
-							cmd.Friends(s, i, steamClient, id)
+							logrus.WithFields(logs).Info("command recieved")
+							embMsg, err := message.FriendsEmbeddedMessage(steamClient, value)
+							message.HandleEmbeddedMessage(embMsg, s, i, logs, err)
 						case "bans":
-							id, _ := steamClient.ResolveID(p.Options[0].StringValue())
-							cmd.Bans(s, i, steamClient, id)
+							logrus.WithFields(logs).Info("command recieved")
+							embMsg, err := message.BanEmbeddedMessage(steamClient, value)
+							message.HandleEmbeddedMessage(embMsg, s, i, logs, err)
 						case "id":
-							id, _ := steamClient.ResolveID(p.Options[0].StringValue())
-							cmd.Profile(s, i, steamClient, id)
+							logrus.WithFields(logs).Info("command recieved")
+							embMsg, err := message.IDEmbeddedMessage(steamClient, value)
+							message.HandleEmbeddedMessage(embMsg, s, i, logs, err)
 						}
+
 					}
 				}
 			}
 		},
 	}
 )
+
+func init() {
+	logrus.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+		ForceColors:   true,
+	})
+}
 
 func init() {
 	env := os.Getenv("BOT_ENV")
@@ -185,6 +209,19 @@ func main() {
 			logrus.Fatalf("cannot create %s command: %s", v.Name, err)
 		}
 		registeredCommands[i] = cmd
+	}
+
+	err = s.UpdateStatusComplex(discordgo.UpdateStatusData{
+		Activities: []*discordgo.Activity{
+			{
+				Name: "/stats and /help",
+				Type: discordgo.ActivityTypeListening,
+			},
+		},
+	})
+
+	if err != nil {
+		log.Fatalf("Cannot set status: %v", err)
 	}
 
 	logrus.Info("Steam Stats is now running. Press CTRL+C to exit.")

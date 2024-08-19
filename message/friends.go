@@ -1,4 +1,4 @@
-package cmd
+package message
 
 import (
 	"fmt"
@@ -6,8 +6,6 @@ import (
 
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
-	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -19,61 +17,18 @@ type FriendData struct {
 	Player steam.Player
 }
 
-func Friends(s *discordgo.Session, i *discordgo.InteractionCreate, steamClient steam.Steam, steamID string) {
-	logs := logrus.Fields{
-		"command": "friends",
-		"player":  steamID,
-		"uuid":    uuid.New().String(),
-	}
-
-	logrus.WithFields(logs).Info("command recieved")
-
-	player, err := steamClient.GetPlayerSummaries(steamID)
+func FriendsEmbeddedMessage(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed, error) {
+	id, err := steamClient.ResolveID(steamID)
 	if err != nil {
-		logs["error"] = err
-		logrus.WithFields(logs).Error("unable to retrieve player information")
-
-		// attempt to send the error back to the user
-		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Unable to retrieve player information",
-			},
-		})
-
-		// unable to send the message. This could be due to discord permission settings
-		logs["error"] = err
-		if err != nil {
-			logrus.WithFields(logs).Error("unable to send message")
-		}
-
-		return
+		return nil, err
 	}
 
-	// Retrieving list of friends for a given player, there is no known limit to how many friends
-	// will be returned within a single request
-	friendsList, err := steamClient.GetFriendsList(player[0].SteamID)
+	player, err := steamClient.GetPlayerSummaries(id)
 	if err != nil {
-		logs["error"] = err
-		logrus.WithFields(logs).Error("unable to retrieve player information")
-
-		// attempt to send the error back to the user
-		err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Unable to retrieve player information",
-			},
-		})
-
-		// unable to send the message. This could be due to discord permission settings
-		logs["error"] = err
-		if err != nil {
-			logrus.WithFields(logs).Error("unable to send message")
-		}
-
-		return
+		return nil, err
 	}
 
+	friendsList, _ := steamClient.GetFriendsList(player[0].SteamID)
 	// Sorting the friends list so we display the oldest friends first
 	sortedFriendsList := steam.SortFriends(friendsList)
 	// Capping the friends list to avoid message overflow issues with Discord
@@ -85,11 +40,7 @@ func Friends(s *discordgo.Session, i *discordgo.InteractionCreate, steamClient s
 	}
 
 	// Getting player information for all friends within the cap range
-	players, err := steamClient.GetPlayerSummaries(steam.GetFriendIDs(sortedFriendsList)[:len(sortedCappedFriendsList)]...)
-	if err != nil {
-		logs["error"] = err
-		logrus.WithFields(logs).Error("unable to retrieve player information")
-	}
+	players, _ := steamClient.GetPlayerSummaries(steam.GetFriendIDs(sortedFriendsList)[:len(sortedCappedFriendsList)]...)
 
 	// Friend data and Player data exists in two seperate API calls, and so, we need to tie the data together
 	// The data is already sorted and is persisted in the friendData slice
@@ -130,7 +81,7 @@ func Friends(s *discordgo.Session, i *discordgo.InteractionCreate, steamClient s
 		}
 	}
 
-	embedMessage := &discordgo.MessageEmbed{
+	embMsg := &discordgo.MessageEmbed{
 		Footer: &discordgo.MessageEmbedFooter{
 			Text: "Friend information is dependent upon the user's privacy settings.",
 		},
@@ -176,10 +127,5 @@ func Friends(s *discordgo.Session, i *discordgo.InteractionCreate, steamClient s
 		},
 	}
 
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Embeds: []*discordgo.MessageEmbed{embedMessage},
-		},
-	})
+	return embMsg, nil
 }
