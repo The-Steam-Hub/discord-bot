@@ -1,0 +1,14 @@
+/game player-count
+/game global-achievements
+/game search 
+
+/player profile
+/player id
+/player games
+/player 
+
+/monitor player level [id]
+/monitor player privacy [id]
+/monitor player bans [id]
+/mointor game updates [id]
+/monitor game release [id]

@@ -2,26 +2,14 @@ package steam
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
-
-type PlayerResponse struct {
-	Response Response `json:"response"`
-}
-
-type Response struct {
-	Profiles                   []Player `json:"players"`
-	PlayerXP                   int      `json:"player_xp"`
-	PlayerLevel                int      `json:"player_level"`
-	PlayerLevelPercentile      float64  `json:"player_level_percentile"`
-	PlayerXPNeededToLevelUp    int      `json:"player_xp_needed_to_level_up"`
-	PlayerXPNeededCurrentLevel int      `json:"player_xp_needed_current_level"`
-}
 
 type Player struct {
 	SteamID                    string `json:"steamid"`
@@ -47,11 +35,17 @@ type Player struct {
 	PersonaState               int
 }
 
-var ErrUserNotFound = errors.New("user not found")
-
 func (s Steam) GetPlayerSummaries(ID ...string) ([]Player, error) {
-	url := fmt.Sprintf("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=%s&steamids=%s", s.Key, strings.Join(ID, ","))
-	resp, err := http.Get(url)
+	baseURL, _ := url.Parse(SteamAPIISteamUser)
+	baseURL.Path += "GetPlayerSummaries/v0002"
+
+	params := url.Values{}
+	params.Add("key", s.Key)
+	params.Add("steamids", strings.Join(ID, ","))
+	params.Add("format", "json")
+	baseURL.RawQuery = params.Encode()
+
+	resp, err := http.Get(baseURL.String())
 	if err != nil {
 		return []Player{}, err
 	}
@@ -65,16 +59,21 @@ func (s Steam) GetPlayerSummaries(ID ...string) ([]Player, error) {
 		return []Player{}, err
 	}
 
-	list := PlayerResponse{}
-	json.Unmarshal(b, &list)
+	var response struct {
+		Players struct {
+			Players []Player `json:"players"`
+		} `json:"response"`
+	}
+
+	json.Unmarshal(b, &response)
 
 	// Steam will still return a 200 if the user is not found
 	// so we need to check if the response is empty
-	if len(list.Response.Profiles) == 0 {
+	if len(response.Players.Players) == 0 {
 		return []Player{}, ErrUserNotFound
 	}
 
-	return list.Response.Profiles, nil
+	return response.Players.Players, nil
 }
 
 func (s Steam) GetPlayerSummariesWithExtra(ID string) (Player, error) {
@@ -98,8 +97,16 @@ func (s Steam) GetPlayerSummariesWithExtra(ID string) (Player, error) {
 }
 
 func GetPlayerBans(s Steam, p *Player) error {
-	url := fmt.Sprintf("https://api.steampowered.com/ISteamUser/GetPlayerBans/v1/?key=%s&steamids=%s", s.Key, p.SteamID)
-	resp, err := http.Get(url)
+	baseURL, _ := url.Parse(SteamAPIISteamUser)
+	baseURL.Path += "GetPlayerBans/v1"
+
+	params := url.Values{}
+	params.Add("key", s.Key)
+	params.Add("steamids", p.SteamID)
+	params.Add("format", "json")
+	baseURL.RawQuery = params.Encode()
+
+	resp, err := http.Get(baseURL.String())
 	if err != nil {
 		return err
 	}
@@ -113,20 +120,31 @@ func GetPlayerBans(s Steam, p *Player) error {
 		return err
 	}
 
-	bans := Response{}
-	json.Unmarshal(b, &bans)
-	p.CommunityBanned = bans.Profiles[0].CommunityBanned
-	p.VACBanned = bans.Profiles[0].VACBanned
-	p.NumOfVacBans = bans.Profiles[0].NumOfVacBans
-	p.DaysSinceLastBan = bans.Profiles[0].DaysSinceLastBan
-	p.NumOfGameBans = bans.Profiles[0].NumOfGameBans
-	p.EconomyBan = bans.Profiles[0].EconomyBan
+	var response struct {
+		Players []Player `json:"players"`
+	}
+
+	json.Unmarshal(b, &response)
+	p.CommunityBanned = response.Players[0].CommunityBanned
+	p.VACBanned = response.Players[0].VACBanned
+	p.NumOfVacBans = response.Players[0].NumOfVacBans
+	p.DaysSinceLastBan = response.Players[0].DaysSinceLastBan
+	p.NumOfGameBans = response.Players[0].NumOfGameBans
+	p.EconomyBan = response.Players[0].EconomyBan
 	return nil
 }
 
 func GetBadges(s Steam, p *Player) error {
-	url := fmt.Sprintf("https://api.steampowered.com/IPlayerService/GetBadges/v1/?key=%s&steamid=%s", s.Key, p.SteamID)
-	resp, err := http.Get(url)
+	baseURL, _ := url.Parse(SteamAPIIPlayerService)
+	baseURL.Path += "GetBadges/v1"
+
+	params := url.Values{}
+	params.Add("key", s.Key)
+	params.Add("steamid", p.SteamID)
+	params.Add("format", "json")
+	baseURL.RawQuery = params.Encode()
+
+	resp, err := http.Get(baseURL.String())
 	if err != nil {
 		return err
 	}
@@ -140,18 +158,34 @@ func GetBadges(s Steam, p *Player) error {
 		return err
 	}
 
-	badges := PlayerResponse{}
-	json.Unmarshal(b, &badges)
-	p.PlayerXP = badges.Response.PlayerXP
-	p.PlayerLevel = badges.Response.PlayerLevel
-	p.PlayerXPNeededToLevelUp = badges.Response.PlayerXPNeededToLevelUp
-	p.PlayerXPNeededCurrentLevel = badges.Response.PlayerXPNeededCurrentLevel
+	var response struct {
+		Player struct {
+			PlayerXP                   int `json:"player_xp"`
+			PlayerLevel                int `json:"player_level"`
+			PlayerXPNeededToLevelUp    int `json:"player_xp_needed_to_level_up"`
+			PlayerXPNeededCurrentLevel int `json:"player_xp_needed_current_level"`
+		} `json:"response"`
+	}
+
+	json.Unmarshal(b, &response)
+	p.PlayerXP = response.Player.PlayerXP
+	p.PlayerLevel = response.Player.PlayerLevel
+	p.PlayerXPNeededToLevelUp = response.Player.PlayerXPNeededToLevelUp
+	p.PlayerXPNeededCurrentLevel = response.Player.PlayerXPNeededCurrentLevel
 	return nil
 }
 
 func GetSteamLevelDistribution(s Steam, p *Player) error {
-	url := fmt.Sprintf("https://api.steampowered.com/IPlayerService/GetSteamLevelDistribution/v1/?key=%s&player_level=%d", s.Key, p.PlayerLevel)
-	resp, err := http.Get(url)
+	baseURL, _ := url.Parse(SteamAPIIPlayerService)
+	baseURL.Path += "GetSteamLevelDistribution/v1"
+
+	params := url.Values{}
+	params.Add("key", s.Key)
+	params.Add("player_level", strconv.Itoa(p.PlayerLevel))
+	params.Add("format", "json")
+	baseURL.RawQuery = params.Encode()
+
+	resp, err := http.Get(baseURL.String())
 	if err != nil {
 		return err
 	}
@@ -165,9 +199,14 @@ func GetSteamLevelDistribution(s Steam, p *Player) error {
 		return err
 	}
 
-	level := PlayerResponse{}
-	json.Unmarshal(b, &level)
-	p.PlayerLevelPercentile = level.Response.PlayerLevelPercentile
+	var response struct {
+		Player struct {
+			PlayerLevelPercentile float64 `json:"player_level_percentile"`
+		} `json:"response"`
+	}
+
+	json.Unmarshal(b, &response)
+	p.PlayerLevelPercentile = response.Player.PlayerLevelPercentile
 	return nil
 }
 

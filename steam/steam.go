@@ -10,10 +10,6 @@ import (
 	"strings"
 )
 
-type Steam struct {
-	Key string
-}
-
 type Vanity struct {
 	SteamID string `json:"steamid"`
 }

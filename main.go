@@ -5,7 +5,8 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/KevinFagan/steam-stats/message"
+	"github.com/KevinFagan/steam-stats/cmd"
+	"github.com/KevinFagan/steam-stats/cmd/stats/player"
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
 	"github.com/google/uuid"
@@ -121,26 +122,25 @@ var (
 						switch p.Name {
 						case "profile":
 							logrus.WithFields(logs).Info("command recieved")
-							embMsg, err := message.ProfileEmbeddedMessage(steamClient, value)
-							message.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+							embMsg, err := player.ProfileEmbeddedMessage(steamClient, value)
+							cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
 						case "games":
 							logrus.WithFields(logs).Info("command recieved")
-							embMsg, err := message.GamesEmbeddedMessage(steamClient, value)
-							message.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+							embMsg, err := player.GamesEmbeddedMessage(steamClient, value)
+							cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
 						case "friends":
 							logrus.WithFields(logs).Info("command recieved")
-							embMsg, err := message.FriendsEmbeddedMessage(steamClient, value)
-							message.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+							embMsg, err := player.FriendsEmbeddedMessage(steamClient, value)
+							cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
 						case "bans":
 							logrus.WithFields(logs).Info("command recieved")
-							embMsg, err := message.BanEmbeddedMessage(steamClient, value)
-							message.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+							embMsg, err := player.BanEmbeddedMessage(steamClient, value)
+							cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
 						case "id":
 							logrus.WithFields(logs).Info("command recieved")
-							embMsg, err := message.IDEmbeddedMessage(steamClient, value)
-							message.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+							embMsg, err := player.IDEmbeddedMessage(steamClient, value)
+							cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
 						}
-
 					}
 				}
 			}

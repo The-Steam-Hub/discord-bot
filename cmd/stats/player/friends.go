@@ -1,4 +1,4 @@
-package message
+package player
 
 import (
 	"fmt"
@@ -28,9 +28,9 @@ func FriendsEmbeddedMessage(steamClient steam.Steam, steamID string) (*discordgo
 		return nil, err
 	}
 
-	friendsList, _ := steamClient.GetFriendsList(player[0].SteamID)
+	friendsList, _ := steamClient.FriendsList(player[0].SteamID)
 	// Sorting the friends list so we display the oldest friends first
-	sortedFriendsList := steam.SortFriends(friendsList)
+	sortedFriendsList := steam.FriendsSort(*friendsList)
 	// Capping the friends list to avoid message overflow issues with Discord
 	sortedCappedFriendsList := sortedFriendsList[:int(math.Min(float64(len(sortedFriendsList)), cap))]
 	// Length may be zero if the players account is private
@@ -40,7 +40,7 @@ func FriendsEmbeddedMessage(steamClient steam.Steam, steamID string) (*discordgo
 	}
 
 	// Getting player information for all friends within the cap range
-	players, _ := steamClient.GetPlayerSummaries(steam.GetFriendIDs(sortedFriendsList)[:len(sortedCappedFriendsList)]...)
+	players, _ := steamClient.GetPlayerSummaries(steam.FriendIDs(sortedFriendsList)[:len(sortedCappedFriendsList)]...)
 
 	// Friend data and Player data exists in two seperate API calls, and so, we need to tie the data together
 	// The data is already sorted and is persisted in the friendData slice
