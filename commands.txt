@@ -1,9 +1,0 @@
-/game player-count
-/game global-achievements
-/game search 
-
-
-/monitor player bans [id]
-/mointor game updates [id]
-/monitor game release [id]
-/monitor game giveaway
