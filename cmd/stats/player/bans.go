@@ -8,55 +8,62 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func BanEmbeddedMessage(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed, error) {
+func PlayerBans(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed, error) {
 	id, err := steamClient.ResolveID(steamID)
 	if err != nil {
+		// log error
 		return nil, err
 	}
 
-	player, err := steamClient.GetPlayerSummariesWithExtra(id)
+	player, err := steamClient.PlayerSummaries(id)
 	if err != nil {
+		// log error
 		return nil, err
+	}
+
+	err = steamClient.PlayerBans(&player[0])
+	if err != nil {
+		// log error
 	}
 
 	embMsg := &discordgo.MessageEmbed{
 		Color: 0x66c0f4,
 		Thumbnail: &discordgo.MessageEmbedThumbnail{
-			URL: player.AvatarFull,
+			URL: player[0].AvatarFull,
 		},
 		Author: &discordgo.MessageEmbedAuthor{
-			Name: fmt.Sprintf("%s %s", player.Status(), player.Name),
-			URL:  player.ProfileURL,
+			Name: fmt.Sprintf("%s %s", player[0].Status(), player[0].Name),
+			URL:  player[0].ProfileURL,
 		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "VAC Banned",
-				Value:  strconv.FormatBool(player.VACBanned),
+				Value:  strconv.FormatBool(player[0].VACBanned),
 				Inline: true,
 			},
 			{
 				Name:   "# Of VAC Bans",
-				Value:  strconv.Itoa(player.NumOfVacBans),
+				Value:  strconv.Itoa(player[0].NumOfVacBans),
 				Inline: true,
 			},
 			{
 				Name:   "# Of Game Bans",
-				Value:  strconv.Itoa(player.NumOfGameBans),
+				Value:  strconv.Itoa(player[0].NumOfGameBans),
 				Inline: true,
 			},
 			{
 				Name:   "Days Since Last Ban",
-				Value:  fmt.Sprintf("%dd", player.DaysSinceLastBan),
+				Value:  fmt.Sprintf("%dd", player[0].DaysSinceLastBan),
 				Inline: true,
 			},
 			{
 				Name:   "Community Banned",
-				Value:  strconv.FormatBool(player.CommunityBanned),
+				Value:  strconv.FormatBool(player[0].CommunityBanned),
 				Inline: true,
 			},
 			{
 				Name:   "Economy Banned",
-				Value:  player.EconomyBan,
+				Value:  player[0].EconomyBan,
 				Inline: true,
 			},
 		},

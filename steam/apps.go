@@ -39,7 +39,7 @@ var (
 	ErrUserNotFound   = errors.New("player not found")
 )
 
-func (s *Steam) AppsOwned(ID string) (*[]AppPlayTimeStatistics, error) {
+func (s Steam) AppsOwned(ID string) (*[]AppPlayTimeStatistics, error) {
 	baseURL, _ := url.Parse(SteamAPIIPlayerService)
 	baseURL.Path += "GetOwnedGames/v0001"
 
@@ -75,7 +75,7 @@ func (s *Steam) AppsOwned(ID string) (*[]AppPlayTimeStatistics, error) {
 	return &response.Games.PlayTimeStatistics, nil
 }
 
-func (s *Steam) AppsRecentlyPlayed(ID string) (*[]AppPlayTimeStatistics, error) {
+func (s Steam) AppsRecentlyPlayed(ID string) (*[]AppPlayTimeStatistics, error) {
 	baseURL, _ := url.Parse(SteamAPIIPlayerService)
 	baseURL.Path += "GetRecentlyPlayedGames/v0001"
 

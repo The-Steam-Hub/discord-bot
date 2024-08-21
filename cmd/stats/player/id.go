@@ -8,14 +8,16 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func IDEmbeddedMessage(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed, error) {
+func PlayerID(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed, error) {
 	id, err := steamClient.ResolveID(steamID)
 	if err != nil {
+		// log error
 		return nil, err
 	}
 
-	player, err := steamClient.GetPlayerSummaries(id)
+	player, err := steamClient.PlayerSummaries(id)
 	if err != nil {
+		// log error
 		return nil, err
 	}
 

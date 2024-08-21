@@ -35,7 +35,7 @@ type Player struct {
 	PersonaState               int
 }
 
-func (s Steam) GetPlayerSummaries(ID ...string) ([]Player, error) {
+func (s Steam) PlayerSummaries(ID ...string) ([]Player, error) {
 	baseURL, _ := url.Parse(SteamAPIISteamUser)
 	baseURL.Path += "GetPlayerSummaries/v0002"
 
@@ -76,27 +76,7 @@ func (s Steam) GetPlayerSummaries(ID ...string) ([]Player, error) {
 	return response.Players.Players, nil
 }
 
-func (s Steam) GetPlayerSummariesWithExtra(ID string) (Player, error) {
-	player, err := s.GetPlayerSummaries(ID)
-	if err != nil {
-		return Player{}, err
-	}
-	err = GetPlayerBans(s, &player[0])
-	if err != nil {
-		return Player{}, err
-	}
-	err = GetBadges(s, &player[0])
-	if err != nil {
-		return Player{}, err
-	}
-	err = GetSteamLevelDistribution(s, &player[0])
-	if err != nil {
-		return Player{}, err
-	}
-	return player[0], nil
-}
-
-func GetPlayerBans(s Steam, p *Player) error {
+func (s Steam) PlayerBans(p *Player) error {
 	baseURL, _ := url.Parse(SteamAPIISteamUser)
 	baseURL.Path += "GetPlayerBans/v1"
 
@@ -134,7 +114,7 @@ func GetPlayerBans(s Steam, p *Player) error {
 	return nil
 }
 
-func GetBadges(s Steam, p *Player) error {
+func (s Steam) PlayerBadges(p *Player) error {
 	baseURL, _ := url.Parse(SteamAPIIPlayerService)
 	baseURL.Path += "GetBadges/v1"
 
@@ -175,7 +155,7 @@ func GetBadges(s Steam, p *Player) error {
 	return nil
 }
 
-func GetSteamLevelDistribution(s Steam, p *Player) error {
+func (s Steam) PlayerLevelDistribution(p *Player) error {
 	baseURL, _ := url.Parse(SteamAPIIPlayerService)
 	baseURL.Path += "GetSteamLevelDistribution/v1"
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,47 +15,48 @@ type Vanity struct {
 	SteamID string `json:"steamid"`
 }
 
-func (s *Steam) ResolveID(input string) (string, error) {
-	// Steam ID64
+var (
+	VanityURLRegex = `https:\/\/steamcommunity\.com\/id\/([^\/]+)`
+	IDURLREgex     = `https:\/\/steamcommunity\.com\/profiles\/(\d+)`
+)
+
+func (s Steam) ResolveID(input string) (string, error) {
 	if _, err := strconv.ParseUint(input, 10, 64); err == nil {
 		return input, nil
 	}
 
-	// STEAM ID3
 	if strings.HasPrefix(input, "[U:1:") {
 		return SteamID3ToSteamID64(input)
 	}
 
-	// STEAM ID
 	if strings.HasPrefix(input, "STEAM_") {
 		return SteamIDToSteamID64(input)
 	}
 
-	// Steam URL
-	if strings.HasPrefix(input, "https://steamcommunity.com") {
-		return s.ResolveIDFromURL(input), nil
+	if strings.HasPrefix(input, SteamCommunity) {
+		return s.resolveIDFromURL(input), nil
 	}
 
-	// Steam Vanity
-	vanityURL, err := s.ResolveVanityURL(input)
+	vanityURL, err := s.resolveVanityURL(input)
 	return vanityURL.SteamID, err
 }
 
-func (s *Steam) ResolveIDFromURL(url string) string {
-	vanityRegex := regexp.MustCompile(`https:\/\/steamcommunity\.com\/id\/([^\/]+)`)
-	IDRegex := regexp.MustCompile(`https:\/\/steamcommunity\.com\/profiles\/(\d+)`)
-
+func (s Steam) resolveIDFromURL(url string) string {
+	vanityRegex := regexp.MustCompile(VanityURLRegex)
 	vanityMatch := vanityRegex.FindStringSubmatch(url)
+
+	IDRegex := regexp.MustCompile(IDURLREgex)
 	IDMatch := IDRegex.FindStringSubmatch(url)
 
-	steamID := ""
+	var steamID string
 	if len(vanityMatch) > 1 {
-		vanity, err := s.ResolveVanityURL(vanityMatch[1])
+		vanity, err := s.resolveVanityURL(vanityMatch[1])
 		if err != nil {
 			return ""
 		}
 		steamID = vanity.SteamID
 	}
+
 	if len(IDMatch) > 1 {
 		steamID = IDMatch[1]
 	}
@@ -62,9 +64,17 @@ func (s *Steam) ResolveIDFromURL(url string) string {
 	return steamID
 }
 
-func (s *Steam) ResolveVanityURL(vanityURL string) (Vanity, error) {
-	url := fmt.Sprintf("https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key=%s&vanityurl=%s", s.Key, vanityURL)
-	resp, err := http.Get(url)
+func (s Steam) resolveVanityURL(vanityURL string) (Vanity, error) {
+	baseURL, _ := url.Parse(SteamAPIISteamUser)
+	baseURL.Path += "ResolveVanityURL/v1"
+
+	params := url.Values{}
+	params.Add("key", s.Key)
+	params.Add("vanityurl", vanityURL)
+	params.Add("format", "json")
+	baseURL.RawQuery = params.Encode()
+
+	resp, err := http.Get(baseURL.String())
 	if err != nil {
 		return Vanity{}, err
 	}

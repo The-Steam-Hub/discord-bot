@@ -17,14 +17,16 @@ type FriendData struct {
 	Player steam.Player
 }
 
-func FriendsEmbeddedMessage(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed, error) {
+func PlayerFriends(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed, error) {
 	id, err := steamClient.ResolveID(steamID)
 	if err != nil {
+		// log error
 		return nil, err
 	}
 
-	player, err := steamClient.GetPlayerSummaries(id)
+	player, err := steamClient.PlayerSummaries(id)
 	if err != nil {
+		// log error
 		return nil, err
 	}
 
@@ -40,7 +42,7 @@ func FriendsEmbeddedMessage(steamClient steam.Steam, steamID string) (*discordgo
 	}
 
 	// Getting player information for all friends within the cap range
-	players, _ := steamClient.GetPlayerSummaries(steam.FriendIDs(sortedFriendsList)[:len(sortedCappedFriendsList)]...)
+	players, _ := steamClient.PlayerSummaries(steam.FriendIDs(sortedFriendsList)[:len(sortedCappedFriendsList)]...)
 
 	// Friend data and Player data exists in two seperate API calls, and so, we need to tie the data together
 	// The data is already sorted and is persisted in the friendData slice

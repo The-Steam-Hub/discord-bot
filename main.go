@@ -29,78 +29,71 @@ var (
 
 	commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "stats",
-			Description: "Fetches statistics related to one of the subcommand",
+			Name:        "player",
+			Description: "Fetches player statistics",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Name:        "player",
-					Description: "Fetches player statistics",
-					Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
+					Name:        "profile",
+					Description: "Fetches statistics about a players profile",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
 					Options: []*discordgo.ApplicationCommandOption{
 						{
-							Name:        "profile",
-							Description: "Fetches statistics about a players profile",
-							Type:        discordgo.ApplicationCommandOptionSubCommand,
-							Options: []*discordgo.ApplicationCommandOption{
-								{
-									Name:        "value",
-									Description: "Steam Identifier",
-									Type:        discordgo.ApplicationCommandOptionString,
-									Required:    true,
-								},
-							},
+							Name:        "value",
+							Description: "Steam Identifier",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
 						},
+					},
+				},
+				{
+					Name:        "games",
+					Description: "Fetches statistics about a players game library",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
 						{
-							Name:        "games",
-							Description: "Fetches statistics about a players game library",
-							Type:        discordgo.ApplicationCommandOptionSubCommand,
-							Options: []*discordgo.ApplicationCommandOption{
-								{
-									Name:        "value",
-									Description: "Steam Identifier",
-									Type:        discordgo.ApplicationCommandOptionString,
-									Required:    true,
-								},
-							},
+							Name:        "value",
+							Description: "Steam Identifier",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
 						},
+					},
+				},
+				{
+					Name:        "bans",
+					Description: "Fetches statistics about a players bans histroy",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
 						{
-							Name:        "bans",
-							Description: "Fetches statistics about a players bans histroy",
-							Type:        discordgo.ApplicationCommandOptionSubCommand,
-							Options: []*discordgo.ApplicationCommandOption{
-								{
-									Name:        "value",
-									Description: "Steam Identifier",
-									Type:        discordgo.ApplicationCommandOptionString,
-									Required:    true,
-								},
-							},
+							Name:        "value",
+							Description: "Steam Identifier",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
 						},
+					},
+				},
+				{
+					Name:        "friends",
+					Description: "Fetches statistics about a players friends list",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
 						{
-							Name:        "friends",
-							Description: "Fetches statistics about a players friends list",
-							Type:        discordgo.ApplicationCommandOptionSubCommand,
-							Options: []*discordgo.ApplicationCommandOption{
-								{
-									Name:        "value",
-									Description: "Steam Identifier",
-									Type:        discordgo.ApplicationCommandOptionString,
-									Required:    true,
-								},
-							},
+							Name:        "value",
+							Description: "Steam Identifier",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
 						},
+					},
+				},
+				{
+					Name:        "id",
+					Description: "Fetches multiple formats of the players Steam ID",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
 						{
-							Name:        "id",
-							Description: "Fetches multiple formats of the players Steam ID",
-							Type:        discordgo.ApplicationCommandOptionSubCommand,
-							Options: []*discordgo.ApplicationCommandOption{
-								{
-									Name:        "value",
-									Description: "Steam Identifier",
-									Type:        discordgo.ApplicationCommandOptionString,
-									Required:    true,
-								},
-							},
+							Name:        "value",
+							Description: "Steam Identifier",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
 						},
 					},
 				},
@@ -109,39 +102,25 @@ var (
 	}
 
 	commandHandler = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"stats": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			for _, st := range i.ApplicationCommandData().Options {
-				switch st.Name {
-				case "player":
-					for _, p := range st.Options {
-						value := p.Options[0].StringValue()
-						logs["value"] = value
-						logs["command"] = p.Name
-						logs["author"] = i.Interaction.Member.User
-
-						switch p.Name {
-						case "profile":
-							logrus.WithFields(logs).Info("command recieved")
-							embMsg, err := player.ProfileEmbeddedMessage(steamClient, value)
-							cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
-						case "games":
-							logrus.WithFields(logs).Info("command recieved")
-							embMsg, err := player.GamesEmbeddedMessage(steamClient, value)
-							cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
-						case "friends":
-							logrus.WithFields(logs).Info("command recieved")
-							embMsg, err := player.FriendsEmbeddedMessage(steamClient, value)
-							cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
-						case "bans":
-							logrus.WithFields(logs).Info("command recieved")
-							embMsg, err := player.BanEmbeddedMessage(steamClient, value)
-							cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
-						case "id":
-							logrus.WithFields(logs).Info("command recieved")
-							embMsg, err := player.IDEmbeddedMessage(steamClient, value)
-							cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
-						}
-					}
+		"player": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			for _, o := range i.ApplicationCommandData().Options {
+				value := o.Options[0].StringValue()
+				switch o.Name {
+				case "profile":
+					embMsg, err := player.PlayerProfile(steamClient, value)
+					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+				case "games":
+					embMsg, err := player.PlayerGames(steamClient, value)
+					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+				case "friends":
+					embMsg, err := player.PlayerFriends(steamClient, value)
+					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+				case "bans":
+					embMsg, err := player.PlayerBans(steamClient, value)
+					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+				case "id":
+					embMsg, err := player.PlayerID(steamClient, value)
+					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
 				}
 			}
 		},
@@ -214,14 +193,14 @@ func main() {
 	err = s.UpdateStatusComplex(discordgo.UpdateStatusData{
 		Activities: []*discordgo.Activity{
 			{
-				Name: "/stats and /help",
+				Name: "Slash Commands",
 				Type: discordgo.ActivityTypeListening,
 			},
 		},
 	})
 
 	if err != nil {
-		log.Fatalf("Cannot set status: %v", err)
+		log.Fatalf("cannot set status: %v", err)
 	}
 
 	logrus.Info("Steam Stats is now running. Press CTRL+C to exit.")

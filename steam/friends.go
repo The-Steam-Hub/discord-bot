@@ -14,7 +14,7 @@ type Friend struct {
 	FriendsSince int64  `json:"friend_since"`
 }
 
-func (s *Steam) FriendsList(ID string) (*[]Friend, error) {
+func (s Steam) FriendsList(ID string) (*[]Friend, error) {
 	baseURL, _ := url.Parse(SteamAPIISteamUser)
 	baseURL.Path += "GetFriendList/v0001"
 
