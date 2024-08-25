@@ -99,7 +99,7 @@ func PlayerGames(steamClient steam.Steam, steamID string) (*discordgo.MessageEmb
 	return embMsg, nil
 }
 
-func DefaultAppValue(value *steam.AppPlayTimeStatistics) string {
+func DefaultAppValue(value *steam.AppPlayTime) string {
 	if value == nil {
 		return "-"
 	}

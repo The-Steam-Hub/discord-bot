@@ -7,16 +7,49 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strconv"
+
+	"github.com/gocolly/colly"
 )
 
 type Steam struct {
 	Key string
 }
 
-type AppNews struct{}
-type AppData struct{}
+type AppPlayerCount struct {
+	Current     int
+	Peak24Hour  int
+	PeakAllTime int
+}
 
-type AppPlayTimeStatistics struct {
+type AppGlobalAchievements struct {
+	Name    string  `json:"name"`
+	Percent float32 `json:"percent"`
+}
+
+type AppData struct {
+	Name             string   `json:"name"`
+	AppID            int      `json:"steam_appid"`
+	ShortDescription string   `json:"short_description"`
+	Developers       []string `json:"developers"`
+	Publishers       []string `json:"publishers"`
+	HeaderImage      string   `json:"header_image"`
+	PriceOverview    struct {
+		FinalFormatted  string `json:"final_formatted"`
+		DiscountPercent int    `json:"discount_percent"`
+	} `json:"price_overview"`
+	ReleaseDate struct {
+		ComingSoon bool   `json:"coming_soon"`
+		Date       string `json:"date"`
+	} `json:"release_date"`
+	Genres []struct {
+		ID          string `json:"id"`
+		Description string `json:"description"`
+	} `json:"genres"`
+}
+
+type AppPlayTime struct {
 	AppID                  int    `json:"appid"`
 	Name                   string `json:"name"`
 	PlayTimeForever        int    `json:"playtime_forever"`
@@ -28,10 +61,13 @@ type AppPlayTimeStatistics struct {
 }
 
 const (
-	SteamAPI               = "http://api.steampowered.com/"
-	SteamCommunity         = "https://steamcommunity.com"
-	SteamAPIIPlayerService = SteamAPI + "IPlayerService/"
-	SteamAPIISteamUser     = SteamAPI + "ISteamUser/"
+	SteamWebAPI                = "http://api.steampowered.com/"
+	SteamPoweredAPI            = "https://store.steampowered.com/api/"
+	SteamCommunityAPI          = "https://steamcommunity.com/"
+	SteamChartsAPI             = "https://steamcharts.com/"
+	SteamWebAPIIPlayerService  = SteamWebAPI + "IPlayerService/"
+	SteamWebAPIISteamUser      = SteamWebAPI + "ISteamUser/"
+	SteamWebAPIISteamUserStats = SteamWebAPI + "ISteamUserStats/"
 )
 
 var (
@@ -39,13 +75,34 @@ var (
 	ErrUserNotFound   = errors.New("player not found")
 )
 
-func (s Steam) AppsOwned(ID string) (*[]AppPlayTimeStatistics, error) {
-	baseURL, _ := url.Parse(SteamAPIIPlayerService)
+var (
+	AppURLRegex = `https:\/\/store.steampowered.com\/app\/(\d+)\/`
+)
+
+func (s Steam) ResolveAppID(input string) (int, error) {
+	if _, err := strconv.ParseUint(input, 10, 32); err == nil {
+		formattedID, _ := strconv.Atoi(input)
+		return formattedID, nil
+	}
+
+	re := regexp.MustCompile(`\/app\/(\d+)\/`)
+	match := re.FindStringSubmatch(input)
+	if len(match) > 1 {
+		formattedID, _ := strconv.Atoi(match[1])
+		return formattedID, nil
+	}
+
+	return s.AppSearch(input)
+
+}
+
+func (s Steam) AppsOwned(steamID string) (*[]AppPlayTime, error) {
+	baseURL, _ := url.Parse(SteamWebAPIIPlayerService)
 	baseURL.Path += "GetOwnedGames/v0001"
 
 	params := url.Values{}
 	params.Add("key", s.Key)
-	params.Add("steamid", ID)
+	params.Add("steamid", steamID)
 	params.Add("format", "json")
 	params.Add("include_appinfo", "true")
 	params.Add("include_free_games", "true")
@@ -67,7 +124,7 @@ func (s Steam) AppsOwned(ID string) (*[]AppPlayTimeStatistics, error) {
 
 	var response struct {
 		Games struct {
-			PlayTimeStatistics []AppPlayTimeStatistics `json:"games"`
+			PlayTimeStatistics []AppPlayTime `json:"games"`
 		} `json:"response"`
 	}
 
@@ -75,13 +132,138 @@ func (s Steam) AppsOwned(ID string) (*[]AppPlayTimeStatistics, error) {
 	return &response.Games.PlayTimeStatistics, nil
 }
 
-func (s Steam) AppsRecentlyPlayed(ID string) (*[]AppPlayTimeStatistics, error) {
-	baseURL, _ := url.Parse(SteamAPIIPlayerService)
+func (s Steam) AppSearch(appName string) (int, error) {
+	baseURL, _ := url.Parse(SteamPoweredAPI)
+	baseURL.Path += "storesearch"
+
+	params := url.Values{}
+	params.Add("term", appName)
+	params.Add("l", "english")
+	params.Add("cc", "US")
+	baseURL.RawQuery = params.Encode()
+
+	resp, err := http.Get(baseURL.String())
+	if err != nil {
+		return 0, err
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	var response struct {
+		Items []struct {
+			ID int `json:"id"`
+		} `json:"items"`
+	}
+
+	json.Unmarshal(b, &response)
+	return response.Items[0].ID, nil
+}
+
+func (s Steam) AppGlobalAchievements(appID int) (*[]AppGlobalAchievements, error) {
+	baseURL, _ := url.Parse(SteamWebAPIISteamUserStats)
+	baseURL.Path += "GetGlobalAchievementPercentagesForApp/v0002"
+
+	params := url.Values{}
+	params.Add("format", "json")
+	params.Add("gameid", strconv.Itoa(appID))
+	baseURL.RawQuery = params.Encode()
+
+	resp, err := http.Get(baseURL.String())
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response struct {
+		AchievementPercentages struct {
+			AppGlobalAchievements []AppGlobalAchievements `json:"achievements"`
+		} `json:"achievementpercentages"`
+	}
+
+	json.Unmarshal(b, &response)
+	return &response.AchievementPercentages.AppGlobalAchievements, nil
+}
+
+func (s Steam) AppPlayerCount(appID int) (*AppPlayerCount, error) {
+	c := colly.NewCollector()
+	playerCount := AppPlayerCount{}
+
+	c.OnHTML(".app-stat span", func(e *colly.HTMLElement) {
+		switch e.Index {
+		case 0:
+			pc, _ := strconv.Atoi(e.Text)
+			playerCount.Current = pc
+		case 1:
+			pc, _ := strconv.Atoi(e.Text)
+			playerCount.Peak24Hour = pc
+		case 2:
+			pc, _ := strconv.Atoi(e.Text)
+			playerCount.PeakAllTime = pc
+		}
+	})
+
+	var scrapeError error
+	c.OnError(func(_ *colly.Response, err error) {
+		scrapeError = err
+	})
+
+	err := c.Visit(SteamChartsAPI + "app/" + strconv.Itoa(appID))
+	if err != nil {
+		return nil, err
+	}
+
+	c.Wait()
+
+	if scrapeError != nil {
+		return nil, scrapeError
+	}
+
+	return &playerCount, nil
+}
+
+func (s Steam) AppData(appID int) (*AppData, error) {
+	baseURL, _ := url.Parse(SteamPoweredAPI)
+	baseURL.Path += "appdetails"
+
+	params := url.Values{}
+	params.Add("appids", strconv.Itoa(appID))
+	params.Add("l", "english")
+	params.Add("cc", "US")
+	baseURL.RawQuery = params.Encode()
+
+	resp, err := http.Get(baseURL.String())
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response map[string]struct {
+		AppData AppData `json:"data"`
+	}
+
+	json.Unmarshal(b, &response)
+	appData := response[strconv.Itoa(appID)].AppData
+	return &appData, nil
+}
+
+func (s Steam) AppsRecentlyPlayed(steamID string) (*[]AppPlayTime, error) {
+	baseURL, _ := url.Parse(SteamWebAPIIPlayerService)
 	baseURL.Path += "GetRecentlyPlayedGames/v0001"
 
 	params := url.Values{}
 	params.Add("key", s.Key)
-	params.Add("steamid", ID)
+	params.Add("steamid", steamID)
 	params.Add("format", "json")
 	baseURL.RawQuery = params.Encode()
 
@@ -101,7 +283,7 @@ func (s Steam) AppsRecentlyPlayed(ID string) (*[]AppPlayTimeStatistics, error) {
 
 	var response struct {
 		Games struct {
-			PlayTimeStatistics []AppPlayTimeStatistics `json:"games"`
+			PlayTimeStatistics []AppPlayTime `json:"games"`
 		} `json:"response"`
 	}
 
@@ -109,7 +291,7 @@ func (s Steam) AppsRecentlyPlayed(ID string) (*[]AppPlayTimeStatistics, error) {
 	return &response.Games.PlayTimeStatistics, nil
 }
 
-func AppsMostPlayed(appStats []AppPlayTimeStatistics) (*AppPlayTimeStatistics, error) {
+func AppsMostPlayed(appStats []AppPlayTime) (*AppPlayTime, error) {
 	if len(appStats) == 0 {
 		return nil, ErrNoAppsProvided
 	}
@@ -124,7 +306,7 @@ func AppsMostPlayed(appStats []AppPlayTimeStatistics) (*AppPlayTimeStatistics, e
 	return &highest, nil
 }
 
-func AppsLeastPlayed(appStats []AppPlayTimeStatistics) (*AppPlayTimeStatistics, error) {
+func AppsLeastPlayed(appStats []AppPlayTime) (*AppPlayTime, error) {
 	if len(appStats) == 0 {
 		return nil, ErrNoAppsProvided
 	}
@@ -139,8 +321,8 @@ func AppsLeastPlayed(appStats []AppPlayTimeStatistics) (*AppPlayTimeStatistics, 
 	return &lowest, nil
 }
 
-func AppsPlayed(appStats []AppPlayTimeStatistics) []AppPlayTimeStatistics {
-	apps := []AppPlayTimeStatistics{}
+func AppsPlayed(appStats []AppPlayTime) []AppPlayTime {
+	apps := []AppPlayTime{}
 	for _, game := range appStats {
 		if game.PlayTimeForever > 0 {
 			apps = append(apps, game)
@@ -149,8 +331,8 @@ func AppsPlayed(appStats []AppPlayTimeStatistics) []AppPlayTimeStatistics {
 	return apps
 }
 
-func AppsNotPlayed(appStats []AppPlayTimeStatistics) []AppPlayTimeStatistics {
-	apps := []AppPlayTimeStatistics{}
+func AppsNotPlayed(appStats []AppPlayTime) []AppPlayTime {
+	apps := []AppPlayTime{}
 	for _, game := range appStats {
 		if game.PlayTimeForever == 0 {
 			apps = append(apps, game)
@@ -159,7 +341,7 @@ func AppsNotPlayed(appStats []AppPlayTimeStatistics) []AppPlayTimeStatistics {
 	return apps
 }
 
-func AppsTotalHoursPlayed(appStats []AppPlayTimeStatistics) int {
+func AppsTotalHoursPlayed(appStats []AppPlayTime) int {
 	total := 0
 	for _, game := range appStats {
 		total += game.PlayTimeForever
@@ -167,7 +349,7 @@ func AppsTotalHoursPlayed(appStats []AppPlayTimeStatistics) int {
 	return total / 60
 }
 
-func AppsRecentHoursPlayed(appStats []AppPlayTimeStatistics) int {
+func AppsRecentHoursPlayed(appStats []AppPlayTime) int {
 	total := 0
 	for _, game := range appStats {
 		total += game.PlayTime2Weeks

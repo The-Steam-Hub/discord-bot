@@ -33,7 +33,7 @@ func (s Steam) ResolveID(input string) (string, error) {
 		return SteamIDToSteamID64(input)
 	}
 
-	if strings.HasPrefix(input, SteamCommunity) {
+	if strings.HasPrefix(input, SteamCommunityAPI) {
 		return s.resolveIDFromURL(input), nil
 	}
 
@@ -65,7 +65,7 @@ func (s Steam) resolveIDFromURL(url string) string {
 }
 
 func (s Steam) resolveVanityURL(vanityURL string) (Vanity, error) {
-	baseURL, _ := url.Parse(SteamAPIISteamUser)
+	baseURL, _ := url.Parse(SteamWebAPIISteamUser)
 	baseURL.Path += "ResolveVanityURL/v1"
 
 	params := url.Values{}

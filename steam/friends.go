@@ -15,7 +15,7 @@ type Friend struct {
 }
 
 func (s Steam) FriendsList(ID string) (*[]Friend, error) {
-	baseURL, _ := url.Parse(SteamAPIISteamUser)
+	baseURL, _ := url.Parse(SteamWebAPIISteamUser)
 	baseURL.Path += "GetFriendList/v0001"
 
 	params := url.Values{}
