@@ -4,21 +4,36 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/KevinFagan/steam-stats/cmd"
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
-func PlayerID(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed, error) {
-	id, err := steamClient.ResolveID(steamID)
+func PlayerID(session *discordgo.Session, interaction *discordgo.InteractionCreate, steamClient steam.Steam, input string) {
+	logs := logrus.Fields{
+		"input":  input,
+		"author": interaction.Member.User.Username,
+		"uuid":   uuid.New(),
+	}
+
+	id, err := steamClient.ResolveID(input)
 	if err != nil {
-		// log error
-		return nil, err
+		logs["error"] = err
+		errMsg := "unable to resolve player ID"
+		logrus.WithFields(logs).Error(errMsg)
+		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		return
 	}
 
 	player, err := steamClient.PlayerSummaries(id)
 	if err != nil {
-		// log error
-		return nil, err
+		logs["error"] = err
+		errMsg := "unable to retrieve player summary"
+		logrus.WithFields(logs).Error(errMsg)
+		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		return
 	}
 
 	steamIDInt, _ := strconv.ParseUint(player[0].SteamID, 10, 64)
@@ -35,20 +50,20 @@ func PlayerID(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed,
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Steam ID",
-				Value:  DefaultStringValue(steam.SteamID64ToSteamID(steamIDInt)),
+				Value:  cmd.HandleDefaultString(steam.SteamID64ToSteamID(steamIDInt)),
 				Inline: true,
 			},
 			{
 				Name:   "Steam ID3",
-				Value:  DefaultStringValue(steam.SteamID64ToSteamID3(steamIDInt)),
+				Value:  cmd.HandleDefaultString(steam.SteamID64ToSteamID3(steamIDInt)),
 				Inline: true,
 			},
 			{
 				Name:   "Steam ID64",
-				Value:  DefaultStringValue(player[0].SteamID),
+				Value:  cmd.HandleDefaultString(player[0].SteamID),
 				Inline: true,
 			},
 		},
 	}
-	return embMsg, nil
+	cmd.HandleOkMessage(embMsg, session, interaction, &logs)
 }

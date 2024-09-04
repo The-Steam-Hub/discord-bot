@@ -35,9 +35,12 @@ type AppData struct {
 	Developers       []string `json:"developers"`
 	Publishers       []string `json:"publishers"`
 	HeaderImage      string   `json:"header_image"`
+	IsFree           bool     `json:"is_free"`
+	DLC              []string `json:"dlc"`
 	PriceOverview    struct {
-		FinalFormatted  string `json:"final_formatted"`
-		DiscountPercent int    `json:"discount_percent"`
+		FinalFormatted   string `json:"final_formatted"`
+		InitialFormatted string `json:"initial_formatted"`
+		DiscountPercent  int    `json:"discount_percent"`
 	} `json:"price_overview"`
 	ReleaseDate struct {
 		ComingSoon bool   `json:"coming_soon"`
@@ -62,7 +65,7 @@ type AppPlayTime struct {
 
 const (
 	SteamWebAPI                = "http://api.steampowered.com/"
-	SteamPoweredAPI            = "https://store.steampowered.com/api/"
+	SteamPoweredAPI            = "https://store.steampowered.com/"
 	SteamCommunityAPI          = "https://steamcommunity.com/"
 	SteamChartsAPI             = "https://steamcharts.com/"
 	SteamWebAPIIPlayerService  = SteamWebAPI + "IPlayerService/"
@@ -73,13 +76,14 @@ const (
 var (
 	ErrNoAppsProvided = errors.New("no apps provided")
 	ErrUserNotFound   = errors.New("player not found")
+	ErrAppNotFound    = errors.New("app not found")
 )
 
 var (
 	AppURLRegex = `https:\/\/store.steampowered.com\/app\/(\d+)\/`
 )
 
-func (s Steam) ResolveAppID(input string) (int, error) {
+func (s Steam) AppIDResolve(input string) (int, error) {
 	if _, err := strconv.ParseUint(input, 10, 32); err == nil {
 		formattedID, _ := strconv.Atoi(input)
 		return formattedID, nil
@@ -134,7 +138,7 @@ func (s Steam) AppsOwned(steamID string) (*[]AppPlayTime, error) {
 
 func (s Steam) AppSearch(appName string) (int, error) {
 	baseURL, _ := url.Parse(SteamPoweredAPI)
-	baseURL.Path += "storesearch"
+	baseURL.Path += "api/storesearch"
 
 	params := url.Values{}
 	params.Add("term", appName)
@@ -159,6 +163,10 @@ func (s Steam) AppSearch(appName string) (int, error) {
 	}
 
 	json.Unmarshal(b, &response)
+	if len(response.Items) == 0 {
+		return -1, ErrAppNotFound
+	}
+
 	return response.Items[0].ID, nil
 }
 
@@ -230,7 +238,7 @@ func (s Steam) AppPlayerCount(appID int) (*AppPlayerCount, error) {
 
 func (s Steam) AppData(appID int) (*AppData, error) {
 	baseURL, _ := url.Parse(SteamPoweredAPI)
-	baseURL.Path += "appdetails"
+	baseURL.Path += "api/appdetails"
 
 	params := url.Values{}
 	params.Add("appids", strconv.Itoa(appID))

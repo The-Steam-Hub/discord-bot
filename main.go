@@ -1,13 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 
-	"github.com/KevinFagan/steam-stats/cmd"
+	"github.com/KevinFagan/steam-stats/cmd/game"
 	"github.com/KevinFagan/steam-stats/cmd/player"
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
@@ -152,50 +150,31 @@ var (
 	commandHandler = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"player": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			for _, o := range i.ApplicationCommandData().Options {
-				value := o.Options[0].StringValue()
+				v := o.Options[0].StringValue()
 				switch o.Name {
 				case "profile":
-					embMsg, err := player.PlayerProfile(steamClient, value)
-					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+					player.PlayerProfile(s, i, steamClient, v)
 				case "games":
-					embMsg, err := player.PlayerGames(steamClient, value)
-					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+					player.PlayerGames(s, i, steamClient, v)
 				case "friends":
-					embMsg, err := player.PlayerFriends(steamClient, value)
-					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+					player.PlayerFriends(s, i, steamClient, v)
 				case "bans":
-					embMsg, err := player.PlayerBans(steamClient, value)
-					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+					player.PlayerBans(s, i, steamClient, v)
 				case "id":
-					embMsg, err := player.PlayerID(steamClient, value)
-					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+					player.PlayerID(s, i, steamClient, v)
 				}
 			}
 		},
 		"game": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			for _, o := range i.ApplicationCommandData().Options {
-				value := o.Options[0].StringValue()
+				v := o.Options[0].StringValue()
 				switch o.Name {
 				case "search":
-					ad, err := steamClient.AppSearch(value)
-					if err != nil {
-						fmt.Println(err)
-					}
-					fmt.Println(ad)
+					game.AppSearch(s, i, steamClient, v)
 				case "global-achievements":
-					intValue, _ := strconv.Atoi(value)
-					achievements, err := steamClient.AppGlobalAchievements(intValue)
-					if err != nil {
-						fmt.Println(err)
-					}
-					fmt.Println(achievements)
+					// TODO: Add global achievement logic
 				case "player-count":
-					intValue, _ := strconv.Atoi(value)
-					pc, err := steamClient.AppPlayerCount(intValue)
-					if err != nil {
-						fmt.Println(err)
-					}
-					fmt.Println(pc)
+					game.AppPlayerCount(s, i, steamClient, v)
 				}
 			}
 		},
