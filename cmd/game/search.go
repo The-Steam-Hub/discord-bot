@@ -24,7 +24,7 @@ func AppSearch(session *discordgo.Session, interaction *discordgo.InteractionCre
 		logs["error"] = err
 		errMsg := "game not found"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -33,7 +33,7 @@ func AppSearch(session *discordgo.Session, interaction *discordgo.InteractionCre
 		logs["error"] = err
 		errMsg := "unable to retrieve game data"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -48,12 +48,12 @@ func AppSearch(session *discordgo.Session, interaction *discordgo.InteractionCre
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Price",
-				Value:  cmd.HandleDefaultString(formatPrice(*appData)),
+				Value:  cmd.HandleStringDefault(formatPrice(*appData)),
 				Inline: true,
 			},
 			{
 				Name:   "Release Date",
-				Value:  cmd.HandleDefaultString(appData.ReleaseDate.Date),
+				Value:  cmd.HandleStringDefault(appData.ReleaseDate.Date),
 				Inline: true,
 			},
 			{
@@ -63,22 +63,22 @@ func AppSearch(session *discordgo.Session, interaction *discordgo.InteractionCre
 			},
 			{
 				Name:   "Developers",
-				Value:  cmd.HandleDefaultString(strings.Join(appData.Developers, ", ")),
+				Value:  cmd.HandleStringDefault(strings.Join(appData.Developers, ", ")),
 				Inline: true,
 			},
 			{
 				Name:   "Publishers",
-				Value:  cmd.HandleDefaultString(strings.Join(appData.Publishers, ", ")),
+				Value:  cmd.HandleStringDefault(strings.Join(appData.Publishers, ", ")),
 				Inline: true,
 			},
 			{
 				Name:   "Genres",
-				Value:  cmd.HandleDefaultString(formatGenres(*appData)),
+				Value:  cmd.HandleStringDefault(formatGenres(*appData)),
 				Inline: true,
 			},
 		},
 	}
-	cmd.HandleOkMessage(embMsg, session, interaction, &logs)
+	cmd.HandleMessageOk(embMsg, session, interaction, &logs)
 }
 
 func formatPrice(appData steam.AppData) string {

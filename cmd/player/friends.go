@@ -27,12 +27,12 @@ func PlayerFriends(session *discordgo.Session, interaction *discordgo.Interactio
 		"uuid":   uuid.New(),
 	}
 
-	id, err := steamClient.ResolveID(input)
+	id, err := steamClient.ResolveSteamID(input)
 	if err != nil {
 		logs["error"] = err
 		errMsg := "unable to resolve player ID"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -41,7 +41,7 @@ func PlayerFriends(session *discordgo.Session, interaction *discordgo.Interactio
 		logs["error"] = err
 		errMsg := "unable to retrieve player summary"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -122,12 +122,12 @@ func PlayerFriends(session *discordgo.Session, interaction *discordgo.Interactio
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Newest",
-				Value:  cmd.HandleDefaultString(newest),
+				Value:  cmd.HandleStringDefault(newest),
 				Inline: true,
 			},
 			{
 				Name:   "Oldest",
-				Value:  cmd.HandleDefaultString(oldest),
+				Value:  cmd.HandleStringDefault(oldest),
 				Inline: true,
 			},
 			{
@@ -137,20 +137,20 @@ func PlayerFriends(session *discordgo.Session, interaction *discordgo.Interactio
 			},
 			{
 				Name:   "Top 50 Friends",
-				Value:  cmd.HandleDefaultString(names),
+				Value:  cmd.HandleStringDefault(names),
 				Inline: true,
 			},
 			{
 				Name:   "Friends For",
-				Value:  cmd.HandleDefaultString(friendsSince),
+				Value:  cmd.HandleStringDefault(friendsSince),
 				Inline: true,
 			},
 			{
 				Name:   "Status",
-				Value:  cmd.HandleDefaultString(statuses),
+				Value:  cmd.HandleStringDefault(statuses),
 				Inline: true,
 			},
 		},
 	}
-	cmd.HandleOkMessage(embMsg, session, interaction, &logs)
+	cmd.HandleMessageOk(embMsg, session, interaction, &logs)
 }

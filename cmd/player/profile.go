@@ -18,12 +18,12 @@ func PlayerProfile(session *discordgo.Session, interaction *discordgo.Interactio
 		"uuid":   uuid.New(),
 	}
 
-	id, err := steamClient.ResolveID(input)
+	id, err := steamClient.ResolveSteamID(input)
 	if err != nil {
 		logs["error"] = err
 		errMsg := "unable to resolve player ID"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -32,7 +32,7 @@ func PlayerProfile(session *discordgo.Session, interaction *discordgo.Interactio
 		logs["error"] = err
 		errMsg := "unable to retrieve player summary"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -63,27 +63,27 @@ func PlayerProfile(session *discordgo.Session, interaction *discordgo.Interactio
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Real Name",
-				Value:  cmd.HandleDefaultString(player[0].RealName),
+				Value:  cmd.HandleStringDefault(player[0].RealName),
 				Inline: true,
 			},
 			{
 				Name:   "Country Code",
-				Value:  cmd.HandleDefaultString(player[0].CountryCode),
+				Value:  cmd.HandleStringDefault(player[0].CountryCode),
 				Inline: true,
 			},
 			{
 				Name:   "State Code",
-				Value:  cmd.HandleDefaultString(player[0].StateCode),
+				Value:  cmd.HandleStringDefault(player[0].StateCode),
 				Inline: true,
 			},
 			{
 				Name:   "Profile Age",
-				Value:  cmd.HandleDefaultString(player[0].ProfileAge()),
+				Value:  cmd.HandleStringDefault(player[0].ProfileAge()),
 				Inline: true,
 			},
 			{
 				Name:   "Last Seen",
-				Value:  cmd.HandleDefaultString(player[0].LastSeen()),
+				Value:  cmd.HandleStringDefault(player[0].LastSeen()),
 				Inline: true,
 			},
 			{
@@ -108,5 +108,5 @@ func PlayerProfile(session *discordgo.Session, interaction *discordgo.Interactio
 			},
 		},
 	}
-	cmd.HandleOkMessage(embMsg, session, interaction, &logs)
+	cmd.HandleMessageOk(embMsg, session, interaction, &logs)
 }

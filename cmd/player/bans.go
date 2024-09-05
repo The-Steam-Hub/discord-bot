@@ -18,12 +18,12 @@ func PlayerBans(session *discordgo.Session, interaction *discordgo.InteractionCr
 		"uuid":   uuid.New(),
 	}
 
-	id, err := steamClient.ResolveID(input)
+	id, err := steamClient.ResolveSteamID(input)
 	if err != nil {
 		logs["error"] = err
 		errMsg := "unable to resolve player ID"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -32,7 +32,7 @@ func PlayerBans(session *discordgo.Session, interaction *discordgo.InteractionCr
 		logs["error"] = err
 		errMsg := "unable to retrieve player summary"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -84,5 +84,5 @@ func PlayerBans(session *discordgo.Session, interaction *discordgo.InteractionCr
 			},
 		},
 	}
-	cmd.HandleOkMessage(embMsg, session, interaction, &logs)
+	cmd.HandleMessageOk(embMsg, session, interaction, &logs)
 }

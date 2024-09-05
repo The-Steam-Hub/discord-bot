@@ -18,12 +18,12 @@ func PlayerGames(session *discordgo.Session, interaction *discordgo.InteractionC
 		"uuid":   uuid.New(),
 	}
 
-	id, err := steamClient.ResolveID(input)
+	id, err := steamClient.ResolveSteamID(input)
 	if err != nil {
 		logs["error"] = err
 		errMsg := "unable to resolve player ID"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -32,7 +32,7 @@ func PlayerGames(session *discordgo.Session, interaction *discordgo.InteractionC
 		logs["error"] = err
 		errMsg := "unable to retrieve player summary"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -48,62 +48,8 @@ func PlayerGames(session *discordgo.Session, interaction *discordgo.InteractionC
 		logrus.WithFields(logs).Error("unable to retireve recently played games")
 	}
 
-	fields := []*discordgo.MessageEmbedField{}
-	fields = append(fields, &discordgo.MessageEmbedField{
-		Name:   "Total Playtime",
-		Value:  fmt.Sprintf("%dh", steam.AppsTotalHoursPlayed(*ownedApps)),
-		Inline: true,
-	})
-
 	mostPlayed, _ := steam.AppsMostPlayed(*ownedApps)
-	fields = append(fields, &discordgo.MessageEmbedField{
-		Name:   "Most Played Game",
-		Value:  DefaultAppValue(mostPlayed),
-		Inline: true,
-	})
-
 	leastPlayed, _ := steam.AppsLeastPlayed(*ownedApps)
-	fields = append(fields, &discordgo.MessageEmbedField{
-		Name:   "Least Played Game",
-		Value:  DefaultAppValue(leastPlayed),
-		Inline: true,
-	})
-
-	fields = append(fields, &discordgo.MessageEmbedField{
-		Name:   "Games Owned",
-		Value:  strconv.Itoa(len(*ownedApps)),
-		Inline: true,
-	})
-
-	fields = append(fields, &discordgo.MessageEmbedField{
-		Name:   "Games Played",
-		Value:  strconv.Itoa(len(steam.AppsPlayed(*ownedApps))),
-		Inline: true,
-	})
-
-	fields = append(fields, &discordgo.MessageEmbedField{
-		Name:   "Games Not Played",
-		Value:  strconv.Itoa(len(steam.AppsNotPlayed(*ownedApps))),
-		Inline: true,
-	})
-
-	fields = append(fields, &discordgo.MessageEmbedField{
-		Name:   "Recent Playtime",
-		Value:  fmt.Sprintf("%dh", steam.AppsRecentHoursPlayed(*ownedApps)),
-		Inline: true,
-	})
-
-	fields = append(fields, &discordgo.MessageEmbedField{
-		Name:   "Recent Games Played",
-		Value:  strconv.Itoa(len(*recentApps)),
-		Inline: true,
-	})
-
-	fields = append(fields, &discordgo.MessageEmbedField{
-		Name:   "",
-		Value:  "",
-		Inline: true,
-	})
 
 	embMsg := &discordgo.MessageEmbed{
 		Footer: &discordgo.MessageEmbedFooter{
@@ -117,10 +63,56 @@ func PlayerGames(session *discordgo.Session, interaction *discordgo.InteractionC
 			Name: fmt.Sprintf("%s %s", player[0].Status(), player[0].Name),
 			URL:  player[0].ProfileURL,
 		},
-		Fields: fields,
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:   "Total Playtime",
+				Value:  fmt.Sprintf("%dh", steam.AppsTotalHoursPlayed(*ownedApps)),
+				Inline: true,
+			},
+			{
+				Name:   "Most Played Game",
+				Value:  DefaultAppValue(mostPlayed),
+				Inline: true,
+			},
+			{
+				Name:   "Least Played Game",
+				Value:  DefaultAppValue(leastPlayed),
+				Inline: true,
+			},
+			{
+				Name:   "Games Owned",
+				Value:  strconv.Itoa(len(*ownedApps)),
+				Inline: true,
+			},
+			{
+				Name:   "Games Played",
+				Value:  strconv.Itoa(len(steam.AppsPlayed(*ownedApps))),
+				Inline: true,
+			},
+			{
+				Name:   "Games Not Played",
+				Value:  strconv.Itoa(len(steam.AppsNotPlayed(*ownedApps))),
+				Inline: true,
+			},
+			{
+				Name:   "Recent Playtime",
+				Value:  fmt.Sprintf("%dh", steam.AppsRecentHoursPlayed(*ownedApps)),
+				Inline: true,
+			},
+			{
+				Name:   "Recent Games Played",
+				Value:  strconv.Itoa(len(*recentApps)),
+				Inline: true,
+			},
+			{
+				Name:   "",
+				Value:  "",
+				Inline: true,
+			},
+		},
 	}
 
-	cmd.HandleOkMessage(embMsg, session, interaction, &logs)
+	cmd.HandleMessageOk(embMsg, session, interaction, &logs)
 }
 
 func DefaultAppValue(value *steam.AppPlayTime) string {

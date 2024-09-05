@@ -89,7 +89,7 @@ func (s Steam) AppIDResolve(input string) (int, error) {
 		return formattedID, nil
 	}
 
-	re := regexp.MustCompile(`\/app\/(\d+)\/`)
+	re := regexp.MustCompile(AppURLRegex)
 	match := re.FindStringSubmatch(input)
 	if len(match) > 1 {
 		formattedID, _ := strconv.Atoi(match[1])

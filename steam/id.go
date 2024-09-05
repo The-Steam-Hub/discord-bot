@@ -17,10 +17,10 @@ type Vanity struct {
 
 var (
 	VanityURLRegex = `https:\/\/steamcommunity\.com\/id\/([^\/]+)`
-	IDURLREgex     = `https:\/\/steamcommunity\.com\/profiles\/(\d+)`
+	IDURLRegex     = `https:\/\/steamcommunity\.com\/profiles\/(\d+)`
 )
 
-func (s Steam) ResolveID(input string) (string, error) {
+func (s Steam) ResolveSteamID(input string) (string, error) {
 	if _, err := strconv.ParseUint(input, 10, 64); err == nil {
 		return input, nil
 	}
@@ -34,23 +34,23 @@ func (s Steam) ResolveID(input string) (string, error) {
 	}
 
 	if strings.HasPrefix(input, SteamCommunityAPI) {
-		return s.resolveIDFromURL(input), nil
+		return s.resolveID(input), nil
 	}
 
-	vanityURL, err := s.resolveVanityURL(input)
+	vanityURL, err := s.resolveVanity(input)
 	return vanityURL.SteamID, err
 }
 
-func (s Steam) resolveIDFromURL(url string) string {
+func (s Steam) resolveID(url string) string {
 	vanityRegex := regexp.MustCompile(VanityURLRegex)
 	vanityMatch := vanityRegex.FindStringSubmatch(url)
 
-	IDRegex := regexp.MustCompile(IDURLREgex)
+	IDRegex := regexp.MustCompile(IDURLRegex)
 	IDMatch := IDRegex.FindStringSubmatch(url)
 
 	var steamID string
 	if len(vanityMatch) > 1 {
-		vanity, err := s.resolveVanityURL(vanityMatch[1])
+		vanity, err := s.resolveVanity(vanityMatch[1])
 		if err != nil {
 			return ""
 		}
@@ -64,7 +64,7 @@ func (s Steam) resolveIDFromURL(url string) string {
 	return steamID
 }
 
-func (s Steam) resolveVanityURL(vanityURL string) (Vanity, error) {
+func (s Steam) resolveVanity(vanityURL string) (Vanity, error) {
 	baseURL, _ := url.Parse(SteamWebAPIISteamUser)
 	baseURL.Path += "ResolveVanityURL/v1"
 
@@ -106,6 +106,18 @@ func SteamID64ToSteamID(steamID64 uint64) string {
 	return fmt.Sprintf("STEAM_%d:%d:%d", universe, authServer, accountNumber)
 }
 
+func SteamIDToSteamID64(steamID string) (string, error) {
+	var universe, authServer, accountNumber uint32
+	_, err := fmt.Sscanf(steamID, "STEAM_%d:%d:%d", &universe, &authServer, &accountNumber)
+	if err != nil {
+		return "", err
+	}
+
+	accountID := accountNumber*2 + authServer
+	steamID64 := (uint64(universe) << 56) | (1 << 52) | (1 << 32) | uint64(accountID)
+	return strconv.FormatUint(steamID64, 10), nil
+}
+
 func SteamID64ToSteamID3(steamID64 uint64) string {
 	accountID := steamID64 & 0xFFFFFFFF
 	return fmt.Sprintf("[U:1:%d]", accountID)
@@ -117,17 +129,7 @@ func SteamID3ToSteamID64(steamID3 string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	steamID64 := uint64(0x110000100000000) | uint64(accountID)
-	return strconv.FormatUint(steamID64, 10), nil
-}
 
-func SteamIDToSteamID64(steamID string) (string, error) {
-	var universe, authServer, accountNumber uint32
-	_, err := fmt.Sscanf(steamID, "STEAM_%d:%d:%d", &universe, &authServer, &accountNumber)
-	if err != nil {
-		return "", err
-	}
-	accountID := accountNumber*2 + authServer
-	steamID64 := (uint64(universe) << 56) | (1 << 52) | (1 << 32) | uint64(accountID)
+	steamID64 := uint64(0x110000100000000) | uint64(accountID)
 	return strconv.FormatUint(steamID64, 10), nil
 }

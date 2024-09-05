@@ -5,7 +5,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func HandleErrorMessage(session *discordgo.Session, interaction *discordgo.InteractionCreate, logs *logrus.Fields, errMsg string) {
+func HandleMessageError(session *discordgo.Session, interaction *discordgo.InteractionCreate, logs *logrus.Fields, errMsg string) {
 	err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -21,7 +21,7 @@ func HandleErrorMessage(session *discordgo.Session, interaction *discordgo.Inter
 	}
 }
 
-func HandleOkMessage(embMsg *discordgo.MessageEmbed, session *discordgo.Session, interaction *discordgo.InteractionCreate, logs *logrus.Fields) {
+func HandleMessageOk(embMsg *discordgo.MessageEmbed, session *discordgo.Session, interaction *discordgo.InteractionCreate, logs *logrus.Fields) {
 	err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -37,7 +37,7 @@ func HandleOkMessage(embMsg *discordgo.MessageEmbed, session *discordgo.Session,
 	}
 }
 
-func HandleDefaultString(value string) string {
+func HandleStringDefault(value string) string {
 	if value == "" {
 		return "-"
 	}

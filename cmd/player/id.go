@@ -18,12 +18,12 @@ func PlayerID(session *discordgo.Session, interaction *discordgo.InteractionCrea
 		"uuid":   uuid.New(),
 	}
 
-	id, err := steamClient.ResolveID(input)
+	id, err := steamClient.ResolveSteamID(input)
 	if err != nil {
 		logs["error"] = err
 		errMsg := "unable to resolve player ID"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -32,7 +32,7 @@ func PlayerID(session *discordgo.Session, interaction *discordgo.InteractionCrea
 		logs["error"] = err
 		errMsg := "unable to retrieve player summary"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -50,20 +50,20 @@ func PlayerID(session *discordgo.Session, interaction *discordgo.InteractionCrea
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Steam ID",
-				Value:  cmd.HandleDefaultString(steam.SteamID64ToSteamID(steamIDInt)),
+				Value:  cmd.HandleStringDefault(steam.SteamID64ToSteamID(steamIDInt)),
 				Inline: true,
 			},
 			{
 				Name:   "Steam ID3",
-				Value:  cmd.HandleDefaultString(steam.SteamID64ToSteamID3(steamIDInt)),
+				Value:  cmd.HandleStringDefault(steam.SteamID64ToSteamID3(steamIDInt)),
 				Inline: true,
 			},
 			{
 				Name:   "Steam ID64",
-				Value:  cmd.HandleDefaultString(player[0].SteamID),
+				Value:  cmd.HandleStringDefault(player[0].SteamID),
 				Inline: true,
 			},
 		},
 	}
-	cmd.HandleOkMessage(embMsg, session, interaction, &logs)
+	cmd.HandleMessageOk(embMsg, session, interaction, &logs)
 }

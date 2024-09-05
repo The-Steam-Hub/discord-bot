@@ -24,7 +24,7 @@ func AppPlayerCount(session *discordgo.Session, interaction *discordgo.Interacti
 		logs["error"] = err
 		errMsg := "unable to resolve game ID"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -33,7 +33,7 @@ func AppPlayerCount(session *discordgo.Session, interaction *discordgo.Interacti
 		logs["error"] = err
 		errMsg := "unable to retrieve player count"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -42,7 +42,7 @@ func AppPlayerCount(session *discordgo.Session, interaction *discordgo.Interacti
 		logs["error"] = err
 		errMsg := "unable to retrieve game data"
 		logrus.WithFields(logs).Error(errMsg)
-		cmd.HandleErrorMessage(session, interaction, &logs, errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
 		return
 	}
 
@@ -73,5 +73,5 @@ func AppPlayerCount(session *discordgo.Session, interaction *discordgo.Interacti
 			},
 		},
 	}
-	cmd.HandleOkMessage(embMsg, session, interaction, &logs)
+	cmd.HandleMessageOk(embMsg, session, interaction, &logs)
 }

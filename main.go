@@ -9,7 +9,6 @@ import (
 	"github.com/KevinFagan/steam-stats/cmd/player"
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 )
@@ -23,10 +22,6 @@ var (
 )
 
 var (
-	logs = logrus.Fields{
-		"uuid": uuid.New().String(),
-	}
-
 	commands = []*discordgo.ApplicationCommand{
 		{
 			Name:        "player",
@@ -100,7 +95,6 @@ var (
 			},
 		},
 		{
-
 			Name:        "game",
 			Description: "Fetches game information",
 			Options: []*discordgo.ApplicationCommandOption{
