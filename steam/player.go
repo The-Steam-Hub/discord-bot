@@ -36,7 +36,7 @@ type Player struct {
 }
 
 func (s Steam) PlayerSummaries(ID ...string) ([]Player, error) {
-	baseURL, _ := url.Parse(SteamAPIISteamUser)
+	baseURL, _ := url.Parse(SteamWebAPIISteamUser)
 	baseURL.Path += "GetPlayerSummaries/v0002"
 
 	params := url.Values{}
@@ -77,7 +77,7 @@ func (s Steam) PlayerSummaries(ID ...string) ([]Player, error) {
 }
 
 func (s Steam) PlayerBans(p *Player) error {
-	baseURL, _ := url.Parse(SteamAPIISteamUser)
+	baseURL, _ := url.Parse(SteamWebAPIISteamUser)
 	baseURL.Path += "GetPlayerBans/v1"
 
 	params := url.Values{}
@@ -115,7 +115,7 @@ func (s Steam) PlayerBans(p *Player) error {
 }
 
 func (s Steam) PlayerBadges(p *Player) error {
-	baseURL, _ := url.Parse(SteamAPIIPlayerService)
+	baseURL, _ := url.Parse(SteamWebAPIIPlayerService)
 	baseURL.Path += "GetBadges/v1"
 
 	params := url.Values{}
@@ -156,7 +156,7 @@ func (s Steam) PlayerBadges(p *Player) error {
 }
 
 func (s Steam) PlayerLevelDistribution(p *Player) error {
-	baseURL, _ := url.Parse(SteamAPIIPlayerService)
+	baseURL, _ := url.Parse(SteamWebAPIIPlayerService)
 	baseURL.Path += "GetSteamLevelDistribution/v1"
 
 	params := url.Values{}

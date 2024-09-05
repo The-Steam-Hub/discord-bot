@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/KevinFagan/steam-stats/cmd"
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -17,22 +20,39 @@ type FriendData struct {
 	Player steam.Player
 }
 
-func PlayerFriends(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed, error) {
-	id, err := steamClient.ResolveID(steamID)
+func PlayerFriends(session *discordgo.Session, interaction *discordgo.InteractionCreate, steamClient steam.Steam, input string) {
+	logs := logrus.Fields{
+		"input":  input,
+		"author": interaction.Member.User.Username,
+		"uuid":   uuid.New(),
+	}
+
+	id, err := steamClient.ResolveSteamID(input)
 	if err != nil {
-		// log error
-		return nil, err
+		logs["error"] = err
+		errMsg := "unable to resolve player ID"
+		logrus.WithFields(logs).Error(errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
+		return
 	}
 
 	player, err := steamClient.PlayerSummaries(id)
 	if err != nil {
-		// log error
-		return nil, err
+		logs["error"] = err
+		errMsg := "unable to retrieve player summary"
+		logrus.WithFields(logs).Error(errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
+		return
 	}
 
-	friendsList, _ := steamClient.FriendsList(player[0].SteamID)
+	friendsList, err := steamClient.FriendsList(player[0].SteamID)
+	if err != nil {
+		logs["error"] = err
+		logrus.WithFields(logs).Error("unable to retrieve friends list")
+	}
+
 	// Sorting the friends list so we display the oldest friends first
-	sortedFriendsList := steam.FriendsSort(*friendsList)
+	sortedFriendsList := steam.FriendsSort(friendsList)
 	// Capping the friends list to avoid message overflow issues with Discord
 	sortedCappedFriendsList := sortedFriendsList[:int(math.Min(float64(len(sortedFriendsList)), cap))]
 	// Length may be zero if the players account is private
@@ -42,7 +62,11 @@ func PlayerFriends(steamClient steam.Steam, steamID string) (*discordgo.MessageE
 	}
 
 	// Getting player information for all friends within the cap range
-	players, _ := steamClient.PlayerSummaries(steam.FriendIDs(sortedFriendsList)[:len(sortedCappedFriendsList)]...)
+	players, err := steamClient.PlayerSummaries(steam.FriendIDs(sortedFriendsList)[:len(sortedCappedFriendsList)]...)
+	if err != nil {
+		logs["error"] = err
+		logrus.WithFields(logs).Error("unable to retrieve player summary")
+	}
 
 	// Friend data and Player data exists in two seperate API calls, and so, we need to tie the data together
 	// The data is already sorted and is persisted in the friendData slice
@@ -98,12 +122,12 @@ func PlayerFriends(steamClient steam.Steam, steamID string) (*discordgo.MessageE
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Newest",
-				Value:  DefaultStringValue(newest),
+				Value:  cmd.HandleStringDefault(newest),
 				Inline: true,
 			},
 			{
 				Name:   "Oldest",
-				Value:  DefaultStringValue(oldest),
+				Value:  cmd.HandleStringDefault(oldest),
 				Inline: true,
 			},
 			{
@@ -113,21 +137,20 @@ func PlayerFriends(steamClient steam.Steam, steamID string) (*discordgo.MessageE
 			},
 			{
 				Name:   "Top 50 Friends",
-				Value:  DefaultStringValue(names),
+				Value:  cmd.HandleStringDefault(names),
 				Inline: true,
 			},
 			{
 				Name:   "Friends For",
-				Value:  DefaultStringValue(friendsSince),
+				Value:  cmd.HandleStringDefault(friendsSince),
 				Inline: true,
 			},
 			{
 				Name:   "Status",
-				Value:  DefaultStringValue(statuses),
+				Value:  cmd.HandleStringDefault(statuses),
 				Inline: true,
 			},
 		},
 	}
-
-	return embMsg, nil
+	cmd.HandleMessageOk(embMsg, session, interaction, &logs)
 }

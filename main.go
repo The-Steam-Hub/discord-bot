@@ -5,11 +5,10 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/KevinFagan/steam-stats/cmd"
-	"github.com/KevinFagan/steam-stats/cmd/stats/player"
+	"github.com/KevinFagan/steam-stats/cmd/game"
+	"github.com/KevinFagan/steam-stats/cmd/player"
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 )
@@ -23,10 +22,6 @@ var (
 )
 
 var (
-	logs = logrus.Fields{
-		"uuid": uuid.New().String(),
-	}
-
 	commands = []*discordgo.ApplicationCommand{
 		{
 			Name:        "player",
@@ -99,28 +94,81 @@ var (
 				},
 			},
 		},
+		{
+			Name:        "game",
+			Description: "Fetches game information",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "search",
+					Description: "Fetches information about a game",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "value",
+							Description: "Game Identifier",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
+						},
+					},
+				},
+				{
+					Name:        "global-achievements",
+					Description: "Fetches global achievement statistics",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "value",
+							Description: "Game Identifier",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
+						},
+					},
+				},
+				{
+					Name:        "player-count",
+					Description: "Fetches player count",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "value",
+							Description: "Game Identifier",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	commandHandler = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"player": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			for _, o := range i.ApplicationCommandData().Options {
-				value := o.Options[0].StringValue()
+				v := o.Options[0].StringValue()
 				switch o.Name {
 				case "profile":
-					embMsg, err := player.PlayerProfile(steamClient, value)
-					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+					player.PlayerProfile(s, i, steamClient, v)
 				case "games":
-					embMsg, err := player.PlayerGames(steamClient, value)
-					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+					player.PlayerGames(s, i, steamClient, v)
 				case "friends":
-					embMsg, err := player.PlayerFriends(steamClient, value)
-					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+					player.PlayerFriends(s, i, steamClient, v)
 				case "bans":
-					embMsg, err := player.PlayerBans(steamClient, value)
-					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+					player.PlayerBans(s, i, steamClient, v)
 				case "id":
-					embMsg, err := player.PlayerID(steamClient, value)
-					cmd.HandleEmbeddedMessage(embMsg, s, i, logs, err)
+					player.PlayerID(s, i, steamClient, v)
+				}
+			}
+		},
+		"game": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			for _, o := range i.ApplicationCommandData().Options {
+				v := o.Options[0].StringValue()
+				switch o.Name {
+				case "search":
+					game.AppSearch(s, i, steamClient, v)
+				case "global-achievements":
+					// TODO: Add global achievement logic
+				case "player-count":
+					game.AppPlayerCount(s, i, steamClient, v)
 				}
 			}
 		},

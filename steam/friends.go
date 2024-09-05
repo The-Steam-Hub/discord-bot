@@ -14,8 +14,8 @@ type Friend struct {
 	FriendsSince int64  `json:"friend_since"`
 }
 
-func (s Steam) FriendsList(ID string) (*[]Friend, error) {
-	baseURL, _ := url.Parse(SteamAPIISteamUser)
+func (s Steam) FriendsList(ID string) ([]Friend, error) {
+	baseURL, _ := url.Parse(SteamWebAPIISteamUser)
 	baseURL.Path += "GetFriendList/v0001"
 
 	params := url.Values{}
@@ -27,16 +27,16 @@ func (s Steam) FriendsList(ID string) (*[]Friend, error) {
 
 	resp, err := http.Get(baseURL.String())
 	if err != nil {
-		return nil, err
+		return []Friend{}, err
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
+		return []Friend{}, fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
 	}
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return []Friend{}, err
 	}
 
 	var response struct {
@@ -46,7 +46,7 @@ func (s Steam) FriendsList(ID string) (*[]Friend, error) {
 	}
 
 	json.Unmarshal(b, &response)
-	return &response.FriendsList.Friends, nil
+	return response.FriendsList.Friends, nil
 }
 
 func FriendsSort(friends []Friend) []Friend {

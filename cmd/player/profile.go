@@ -4,31 +4,48 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/KevinFagan/steam-stats/cmd"
 	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
-func PlayerProfile(steamClient steam.Steam, steamID string) (*discordgo.MessageEmbed, error) {
-	id, err := steamClient.ResolveID(steamID)
+func PlayerProfile(session *discordgo.Session, interaction *discordgo.InteractionCreate, steamClient steam.Steam, input string) {
+	logs := logrus.Fields{
+		"input":  input,
+		"author": interaction.Member.User.Username,
+		"uuid":   uuid.New(),
+	}
+
+	id, err := steamClient.ResolveSteamID(input)
 	if err != nil {
-		// log error
-		return nil, err
+		logs["error"] = err
+		errMsg := "unable to resolve player ID"
+		logrus.WithFields(logs).Error(errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
+		return
 	}
 
 	player, err := steamClient.PlayerSummaries(id)
 	if err != nil {
-		// log error
-		return nil, err
+		logs["error"] = err
+		errMsg := "unable to retrieve player summary"
+		logrus.WithFields(logs).Error(errMsg)
+		cmd.HandleMessageError(session, interaction, &logs, errMsg)
+		return
 	}
 
 	err = steamClient.PlayerBadges(&player[0])
 	if err != nil {
-		// log error
+		logs["error"] = err
+		logrus.WithFields(logs).Error("unable to retireve player badges")
 	}
 
 	err = steamClient.PlayerLevelDistribution(&player[0])
 	if err != nil {
-		// log error
+		logs["error"] = err
+		logrus.WithFields(logs).Error("unable to retireve player level distribution")
 	}
 
 	embMsg := &discordgo.MessageEmbed{
@@ -46,27 +63,27 @@ func PlayerProfile(steamClient steam.Steam, steamID string) (*discordgo.MessageE
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Real Name",
-				Value:  DefaultStringValue(player[0].RealName),
+				Value:  cmd.HandleStringDefault(player[0].RealName),
 				Inline: true,
 			},
 			{
 				Name:   "Country Code",
-				Value:  DefaultStringValue(player[0].CountryCode),
+				Value:  cmd.HandleStringDefault(player[0].CountryCode),
 				Inline: true,
 			},
 			{
 				Name:   "State Code",
-				Value:  DefaultStringValue(player[0].StateCode),
+				Value:  cmd.HandleStringDefault(player[0].StateCode),
 				Inline: true,
 			},
 			{
 				Name:   "Profile Age",
-				Value:  DefaultStringValue(player[0].ProfileAge()),
+				Value:  cmd.HandleStringDefault(player[0].ProfileAge()),
 				Inline: true,
 			},
 			{
 				Name:   "Last Seen",
-				Value:  DefaultStringValue(player[0].LastSeen()),
+				Value:  cmd.HandleStringDefault(player[0].LastSeen()),
 				Inline: true,
 			},
 			{
@@ -91,12 +108,5 @@ func PlayerProfile(steamClient steam.Steam, steamID string) (*discordgo.MessageE
 			},
 		},
 	}
-	return embMsg, nil
-}
-
-func DefaultStringValue(value string) string {
-	if value == "" {
-		return "-"
-	}
-	return value
+	cmd.HandleMessageOk(embMsg, session, interaction, &logs)
 }
