@@ -112,19 +112,6 @@ var (
 					},
 				},
 				{
-					Name:        "global-achievements",
-					Description: "Fetches global achievement statistics",
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Options: []*discordgo.ApplicationCommandOption{
-						{
-							Name:        "value",
-							Description: "Game Identifier",
-							Type:        discordgo.ApplicationCommandOptionString,
-							Required:    true,
-						},
-					},
-				},
-				{
 					Name:        "player-count",
 					Description: "Fetches player count",
 					Type:        discordgo.ApplicationCommandOptionSubCommand,
@@ -165,8 +152,6 @@ var (
 				switch o.Name {
 				case "search":
 					game.AppSearch(s, i, steamClient, v)
-				case "global-achievements":
-					// TODO: Add global achievement logic
 				case "player-count":
 					game.AppPlayerCount(s, i, steamClient, v)
 				}
