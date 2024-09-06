@@ -28,7 +28,7 @@ func AppSearch(session *discordgo.Session, interaction *discordgo.InteractionCre
 		return
 	}
 
-	appData, err := steamClient.AppData(appID)
+	appData, err := steamClient.AppDetailedData(appID)
 	if err != nil {
 		logs["error"] = err
 		errMsg := "unable to retrieve game data"
@@ -81,7 +81,7 @@ func AppSearch(session *discordgo.Session, interaction *discordgo.InteractionCre
 	cmd.HandleMessageOk(embMsg, session, interaction, &logs)
 }
 
-func formatPrice(appData steam.AppData) string {
+func formatPrice(appData steam.AppDetailedData) string {
 	if appData.IsFree {
 		return "Free"
 	}
@@ -96,7 +96,7 @@ func formatPrice(appData steam.AppData) string {
 	return appData.PriceOverview.FinalFormatted
 }
 
-func formatGenres(appData steam.AppData) string {
+func formatGenres(appData steam.AppDetailedData) string {
 	var format string
 	for _, v := range appData.Genres {
 		format += v.Description + ", "

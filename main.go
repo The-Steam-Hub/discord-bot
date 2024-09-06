@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var s *discordgo.Session
+var discordSession *discordgo.Session
 
 var (
 	steamToken   string
@@ -188,26 +188,26 @@ func init() {
 func init() {
 	logrus.Info("creating Discord session...")
 	var err error
-	s, err = discordgo.New("Bot " + discordToken)
+	discordSession, err = discordgo.New("Bot " + discordToken)
 	if err != nil {
 		logrus.Fatalf("error creating Discord session: %s", err)
 		return
 	}
 
-	s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	discordSession.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := commandHandler[i.ApplicationCommandData().Name]; ok {
 			h(s, i)
 		}
 	})
 
-	s.AddHandler(func(s *discordgo.Session, event *discordgo.Ready) {
+	discordSession.AddHandler(func(s *discordgo.Session, event *discordgo.Ready) {
 		logrus.Infof("logging in as %s#%s", s.State.User.Username, s.State.User.Discriminator)
 	})
 }
 
 func main() {
 	logrus.Info("opening websocket connection to Discord...")
-	err := s.Open()
+	err := discordSession.Open()
 	if err != nil {
 		logrus.Fatalf("error opening connection: %s", err)
 		return
@@ -215,7 +215,7 @@ func main() {
 
 	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
 	for i, v := range commands {
-		cmd, err := s.ApplicationCommandCreate(s.State.User.ID, "", v)
+		cmd, err := discordSession.ApplicationCommandCreate(discordSession.State.User.ID, "", v)
 		logrus.Infof("creating command: %s", v.Name)
 		if err != nil {
 			logrus.Fatalf("cannot create %s command: %s", v.Name, err)
@@ -223,7 +223,7 @@ func main() {
 		registeredCommands[i] = cmd
 	}
 
-	err = s.UpdateStatusComplex(discordgo.UpdateStatusData{
+	err = discordSession.UpdateStatusComplex(discordgo.UpdateStatusData{
 		Activities: []*discordgo.Activity{
 			{
 				Name: "Slash Commands",
@@ -237,7 +237,7 @@ func main() {
 	}
 
 	logrus.Info("Steam Stats is now running. Press CTRL+C to exit.")
-	defer s.Close()
+	defer discordSession.Close()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)

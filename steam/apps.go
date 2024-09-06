@@ -29,6 +29,11 @@ type AppGlobalAchievements struct {
 }
 
 type AppData struct {
+	AppID string `json:"appid"`
+	Name  string `json:"name"`
+}
+
+type AppDetailedData struct {
 	Name             string   `json:"name"`
 	AppID            int      `json:"steam_appid"`
 	ShortDescription string   `json:"short_description"`
@@ -71,6 +76,7 @@ const (
 	SteamWebAPIIPlayerService  = SteamWebAPI + "IPlayerService/"
 	SteamWebAPIISteamUser      = SteamWebAPI + "ISteamUser/"
 	SteamWebAPIISteamUserStats = SteamWebAPI + "ISteamUserStats/"
+	SteamWebAPIISteamApps      = SteamWebAPI + "ISteamApps/"
 )
 
 var (
@@ -98,6 +104,34 @@ func (s Steam) AppIDResolve(input string) (int, error) {
 
 	return s.AppSearch(input)
 
+}
+
+func (s Steam) AppsList() (*[]AppData, error) {
+	baseURL, _ := url.Parse(SteamWebAPIISteamApps)
+	baseURL.Path += "GetAppList/v2/"
+
+	resp, err := http.Get(baseURL.String())
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response struct {
+		AppList struct {
+			Apps []AppData `json:"apps"`
+		} `json:"applist"`
+	}
+
+	json.Unmarshal(b, &response)
+	return &response.AppList.Apps, nil
 }
 
 func (s Steam) AppsOwned(steamID string) (*[]AppPlayTime, error) {
@@ -236,7 +270,7 @@ func (s Steam) AppPlayerCount(appID int) (*AppPlayerCount, error) {
 	return &playerCount, nil
 }
 
-func (s Steam) AppData(appID int) (*AppData, error) {
+func (s Steam) AppDetailedData(appID int) (*AppDetailedData, error) {
 	baseURL, _ := url.Parse(SteamPoweredAPI)
 	baseURL.Path += "api/appdetails"
 
@@ -257,7 +291,7 @@ func (s Steam) AppData(appID int) (*AppData, error) {
 	}
 
 	var response map[string]struct {
-		AppData AppData `json:"data"`
+		AppData AppDetailedData `json:"data"`
 	}
 
 	json.Unmarshal(b, &response)

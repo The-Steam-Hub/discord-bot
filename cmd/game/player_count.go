@@ -37,7 +37,7 @@ func AppPlayerCount(session *discordgo.Session, interaction *discordgo.Interacti
 		return
 	}
 
-	appData, err := steamClient.AppData(appID)
+	appData, err := steamClient.AppDetailedData(appID)
 	if err != nil {
 		logs["error"] = err
 		errMsg := "unable to retrieve game data"
