@@ -19,7 +19,7 @@ func AppPlayerCount(session *discordgo.Session, interaction *discordgo.Interacti
 		"uuid":   uuid.New(),
 	}
 
-	appID, err := steamClient.AppIDResolve(input)
+	appID, err := steamClient.AppSearch(input)
 	if err != nil {
 		logs["error"] = err
 		errMsg := "unable to find game"
@@ -51,7 +51,7 @@ func AppPlayerCount(session *discordgo.Session, interaction *discordgo.Interacti
 	embMsg := &discordgo.MessageEmbed{
 		Title: appData.Name,
 		URL:   steam.SteamPoweredAPI + "app/" + strconv.Itoa(appID),
-		Image: &discordgo.MessageEmbedImage{
+		Thumbnail: &discordgo.MessageEmbedThumbnail{
 			URL: appData.HeaderImage,
 		},
 		Color: 0x66c0f4,

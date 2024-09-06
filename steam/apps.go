@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 
 	"github.com/gocolly/colly"
@@ -84,27 +83,6 @@ var (
 	ErrUserNotFound   = errors.New("player not found")
 	ErrAppNotFound    = errors.New("app not found")
 )
-
-var (
-	AppURLRegex = `https:\/\/store.steampowered.com\/app\/(\d+)\/`
-)
-
-func (s Steam) AppIDResolve(input string) (int, error) {
-	if _, err := strconv.ParseUint(input, 10, 32); err == nil {
-		formattedID, _ := strconv.Atoi(input)
-		return formattedID, nil
-	}
-
-	re := regexp.MustCompile(AppURLRegex)
-	match := re.FindStringSubmatch(input)
-	if len(match) > 1 {
-		formattedID, _ := strconv.Atoi(match[1])
-		return formattedID, nil
-	}
-
-	return s.AppSearch(input)
-
-}
 
 func (s Steam) AppsList() (*[]AppData, error) {
 	baseURL, _ := url.Parse(SteamWebAPIISteamApps)
