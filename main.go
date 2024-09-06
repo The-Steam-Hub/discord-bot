@@ -191,7 +191,6 @@ func init() {
 	discordSession, err = discordgo.New("Bot " + discordToken)
 	if err != nil {
 		logrus.Fatalf("error creating Discord session: %s", err)
-		return
 	}
 
 	discordSession.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -210,7 +209,6 @@ func main() {
 	err := discordSession.Open()
 	if err != nil {
 		logrus.Fatalf("error opening connection: %s", err)
-		return
 	}
 
 	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
