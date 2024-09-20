@@ -38,7 +38,7 @@ func AppSearch(session *discordgo.Session, interaction *discordgo.InteractionCre
 	}
 
 	embMsg := &discordgo.MessageEmbed{
-		Title:       appData.Name,
+		Title:       trimTitle(appData.Name),
 		URL:         steam.SteamPoweredAPI + "app/" + strconv.Itoa(appID),
 		Description: appData.ShortDescription,
 		Image: &discordgo.MessageEmbedImage{

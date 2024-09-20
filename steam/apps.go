@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/gocolly/colly"
 )
@@ -164,7 +165,6 @@ func (s Steam) AppsOwned(steamID string) (*[]AppPlayTime, error) {
 }
 
 func (s Steam) AppNews(appID int) (*AppNews, error) {
-	fmt.Println(appID)
 	baseURL, _ := url.Parse(SteamWebAPIISteamNews)
 	baseURL.Path += "GetNewsForApp/v2"
 
@@ -191,7 +191,6 @@ func (s Steam) AppNews(appID int) (*AppNews, error) {
 	}
 
 	json.Unmarshal(b, &response)
-	fmt.Println(response)
 	if len(response.AppNews.NewsItems) == 0 {
 		return nil, ErrNewsNotFound
 	}
@@ -221,13 +220,23 @@ func (s Steam) AppSearch(appName string) (int, error) {
 
 	var response struct {
 		Items []struct {
-			ID int `json:"id"`
+			ID   int    `json:"id"`
+			Name string `json:"name"`
 		} `json:"items"`
 	}
 
 	json.Unmarshal(b, &response)
 	if len(response.Items) == 0 {
 		return -1, ErrAppNotFound
+	}
+
+	// Steam fails to always return the correct game if there are multiple in a series
+	// For example, Frostpunk and Frostpunk 2. Searching for "Frostpunk" can result in
+	// Forstpunk 2 being returned as the first index.
+	for _, v := range response.Items {
+		if strings.EqualFold(v.Name, appName) {
+			return v.ID, nil
+		}
 	}
 
 	return response.Items[0].ID, nil

@@ -49,7 +49,7 @@ func AppPlayerCount(session *discordgo.Session, interaction *discordgo.Interacti
 	p := message.NewPrinter(language.English)
 
 	embMsg := &discordgo.MessageEmbed{
-		Title: appData.Name,
+		Title: trimTitle(appData.Name),
 		URL:   steam.SteamPoweredAPI + "app/" + strconv.Itoa(appID),
 		Thumbnail: &discordgo.MessageEmbedThumbnail{
 			URL: appData.HeaderImage,

@@ -47,19 +47,26 @@ func AppNews(session *discordgo.Session, interaction *discordgo.InteractionCreat
 	}
 
 	embMsg := &discordgo.MessageEmbed{
-		Title: fmt.Sprintf("%s - %s", appData.Name, appNews.Title),
+		Title: trimTitle(fmt.Sprintf("%s - %s", appData.Name, appNews.Title)),
 		URL:   appNews.URL,
 		Image: &discordgo.MessageEmbedImage{
-			URL: RenderNewsImage(*appData, *appNews),
+			URL: renderNewsImage(*appData, *appNews),
 		},
-		Description: RenderNewsContents(appNews.Contents),
+		Description: trimNewsContents(appNews.Contents),
 		Color:       0x66c0f4,
 	}
 
 	cmd.HandleMessageOk(embMsg, session, interaction, &logs)
 }
 
-func RenderNewsImage(appData steam.AppDetailedData, appNews steam.AppNews) string {
+func trimTitle(input string) string {
+	if len(input) >= 253 {
+		return input[:253] + "..."
+	}
+	return input
+}
+
+func renderNewsImage(appData steam.AppDetailedData, appNews steam.AppNews) string {
 	regex := regexp.MustCompile(`\[img\](.*)\[\/img\]`)
 	matches := regex.FindStringSubmatch(appNews.Contents)
 
@@ -76,7 +83,7 @@ func RenderNewsImage(appData steam.AppDetailedData, appNews steam.AppNews) strin
 }
 
 // This is hacky.... replace with proper tokenization in the future
-func RenderNewsContents(input string) string {
+func trimNewsContents(input string) string {
 	replacements := map[*regexp.Regexp]string{
 		regexp.MustCompile(`\[b\](.*?)\[/b\]`):           "**$1**",
 		regexp.MustCompile(`\[i\](.*?)\[/i\]`):           "*$1*",
@@ -92,20 +99,23 @@ func RenderNewsContents(input string) string {
 		// Converting lists
 		regexp.MustCompile(`\[list\]`):    "",
 		regexp.MustCompile(`\[/list\]`):   "",
+		regexp.MustCompile(`\[olist\]`):   "",
+		regexp.MustCompile(`\[/olist\]`):  "",
 		regexp.MustCompile(`\[\*\](.*?)`): "- $1",
 
 		// Delete tags
 		regexp.MustCompile(`\[img\](.*?)\[/img\]`):                       "",
 		regexp.MustCompile(`\[hr\]\[/hr\]`):                              "",
 		regexp.MustCompile(`\[previewyoutube=(.*)\]\[/previewyoutube\]`): "",
-
-		// Fixing newlines
-		regexp.MustCompile(`(\n{3,})`): "\n\n",
 	}
 
 	for re, replacement := range replacements {
 		input = re.ReplaceAllString(input, replacement)
 	}
+
+	// Removing any newlines that might have been added during the tag
+	// deletion process
+	input = regexp.MustCompile(`(\n{3,})`).ReplaceAllString(input, "\n\n")
 
 	if len(input) > 512 {
 		return input[:512] + "..."
