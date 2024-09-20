@@ -32,6 +32,19 @@ type AppData struct {
 	Name  string `json:"name"`
 }
 
+type AppNews struct {
+	AppID     string `json:"appid"`
+	GID       string `json:"gid"`
+	Title     string `json:"title"`
+	URL       string `json:"URL"`
+	Author    string `json:"author"`
+	Contents  string `json:"contents"`
+	FeedLabel string `json:"feedlabel"`
+	Date      int    `json:"date"`
+	FeedName  string `json:"feedname"`
+	FeedType  int    `json:"feed_type"`
+}
+
 type AppDetailedData struct {
 	Name             string   `json:"name"`
 	AppID            int      `json:"steam_appid"`
@@ -76,12 +89,14 @@ const (
 	SteamWebAPIISteamUser      = SteamWebAPI + "ISteamUser/"
 	SteamWebAPIISteamUserStats = SteamWebAPI + "ISteamUserStats/"
 	SteamWebAPIISteamApps      = SteamWebAPI + "ISteamApps/"
+	SteamWebAPIISteamNews      = SteamWebAPI + "ISteamNews/"
 )
 
 var (
 	ErrNoAppsProvided = errors.New("no apps provided")
 	ErrUserNotFound   = errors.New("player not found")
 	ErrAppNotFound    = errors.New("app not found")
+	ErrNewsNotFound   = errors.New("news not found")
 )
 
 func (s Steam) AppsList() (*[]AppData, error) {
@@ -146,6 +161,42 @@ func (s Steam) AppsOwned(steamID string) (*[]AppPlayTime, error) {
 
 	json.Unmarshal(b, &response)
 	return &response.Games.PlayTimeStatistics, nil
+}
+
+func (s Steam) AppNews(appID int) (*AppNews, error) {
+	fmt.Println(appID)
+	baseURL, _ := url.Parse(SteamWebAPIISteamNews)
+	baseURL.Path += "GetNewsForApp/v2"
+
+	params := url.Values{}
+	params.Add("appid", strconv.Itoa(appID))
+	params.Add("count", "1")
+	params.Add("feeds", "steam_community_announcements")
+	baseURL.RawQuery = params.Encode()
+
+	resp, err := http.Get(baseURL.String())
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response struct {
+		AppNews struct {
+			NewsItems []AppNews `json:"newsitems"`
+		} `json:"appnews"`
+	}
+
+	json.Unmarshal(b, &response)
+	fmt.Println(response)
+	if len(response.AppNews.NewsItems) == 0 {
+		return nil, ErrNewsNotFound
+	}
+
+	return &response.AppNews.NewsItems[0], nil
 }
 
 func (s Steam) AppSearch(appName string) (int, error) {

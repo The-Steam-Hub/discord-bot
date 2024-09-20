@@ -124,6 +124,19 @@ var (
 						},
 					},
 				},
+				{
+					Name:        "news",
+					Description: "Fetches latest news about a game",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "value",
+							Description: "Game Identifier",
+							Type:        discordgo.ApplicationCommandOptionString,
+							Required:    true,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -154,6 +167,8 @@ var (
 					game.AppSearch(s, i, steamClient, v)
 				case "player-count":
 					game.AppPlayerCount(s, i, steamClient, v)
+				case "news":
+					game.AppNews(s, i, steamClient, v)
 				}
 			}
 		},
@@ -240,12 +255,4 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
 	<-stop
-
-	// for _, v := range registeredCommands {
-	// 	logrus.Infof("deleting command: %s", v.Name)
-	// 	err := s.ApplicationCommandDelete(s.State.User.ID, "", v.ID)
-	// 	if err != nil {
-	// 		logrus.Errorf("cannot delete command %s: %s", v.Name, err)
-	// 	}
-	// }
 }
