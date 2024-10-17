@@ -1,4 +1,4 @@
-module github.com/the-steam-bot/discord-bot
+module github.com/the-steam-hub/discord-bot
 
 go 1.22.3
 

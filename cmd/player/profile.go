@@ -7,8 +7,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/the-steam-bot/discord-bot/cmd"
-	"github.com/the-steam-bot/discord-bot/steam"
+	"github.com/the-steam-hub/discord-bot/cmd"
+	"github.com/the-steam-hub/discord-bot/steam"
 )
 
 func PlayerProfile(session *discordgo.Session, interaction *discordgo.InteractionCreate, steamClient steam.Steam, input string) {
