@@ -1,4 +1,4 @@
-module github.com/KevinFagan/steam-stats
+module github.com/the-steam-bot/discord-bot
 
 go 1.22.3
 

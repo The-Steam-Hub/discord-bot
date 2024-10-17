@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/KevinFagan/steam-stats/cmd"
-	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"github.com/the-steam-bot/discord-bot/cmd"
+	"github.com/the-steam-bot/discord-bot/steam"
 )
 
 const (

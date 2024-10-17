@@ -1,16 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 
-	"github.com/KevinFagan/steam-stats/cmd/game"
-	"github.com/KevinFagan/steam-stats/cmd/player"
-	"github.com/KevinFagan/steam-stats/steam"
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
+	"github.com/the-steam-bot/discord-bot/cmd/game"
+	"github.com/the-steam-bot/discord-bot/cmd/player"
+	"github.com/the-steam-bot/discord-bot/steam"
 )
 
 var discordSession *discordgo.Session
@@ -197,6 +198,9 @@ func init() {
 
 	steamToken = os.Getenv("STEAM_API_KEY")
 	discordToken = os.Getenv("DISCORD_BOT_TOKEN")
+
+	fmt.Println(discordToken)
+
 	steamClient = steam.Steam{Key: steamToken}
 }
 
