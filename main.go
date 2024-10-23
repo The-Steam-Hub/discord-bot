@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -198,9 +197,6 @@ func init() {
 
 	steamToken = os.Getenv("STEAM_API_KEY")
 	discordToken = os.Getenv("DISCORD_BOT_TOKEN")
-
-	fmt.Println(discordToken)
-
 	steamClient = steam.Steam{Key: steamToken}
 }
 
